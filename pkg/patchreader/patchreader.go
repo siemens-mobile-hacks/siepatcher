@@ -109,17 +109,10 @@ func parseAddrOffset(currentSettings *chunkSettings, offsetStr string) error {
 	offStr := offsetStr[1:]
 	var intValue int64
 	var err error
-	if strings.HasPrefix(offStr, "0x") {
-		hexOff := offStr[2:]
-		intValue, err = strconv.ParseInt(hexOff, 16, 64)
-		if err != nil {
-			return fmt.Errorf("cannot parse %q as hex string: %v", hexOff, err)
-		}
-	} else {
-		intValue, err = strconv.ParseInt(offStr, 10, 64)
-		if err != nil {
-			return fmt.Errorf("cannot parse %q as dec string: %v", offStr, err)
-		}
+	offStr = strings.TrimPrefix(offStr, "0x") // If there is 0x before the address -- kill it.
+	intValue, err = strconv.ParseInt(offStr, 16, 64)
+	if err != nil {
+		return fmt.Errorf("cannot parse %q as hex string: %v", offStr, err)
 	}
 	if sign == '-' {
 		intValue = -intValue
