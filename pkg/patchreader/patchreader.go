@@ -12,6 +12,7 @@ import (
 
 const (
 	CommentMarker = ';'
+	PragmaMarker  = "#pragma"
 )
 
 type Chunk struct {
@@ -47,6 +48,10 @@ func (pr *PatchReader) NumChunks() int {
 	return len(pr.chunks)
 }
 
+////////////////////////////////////////////////////////////////////////////
+// VKP file format: http://www.vi-soft.com.ua/siemens/vkp_file_format.txt //
+////////////////////////////////////////////////////////////////////////////
+
 func parseDataField(df string) ([]byte, error) {
 	byteData, err := hex.DecodeString(df)
 	if err != nil {
@@ -56,11 +61,52 @@ func parseDataField(df string) ([]byte, error) {
 	return byteData, nil
 }
 
+type chunkSettings struct {
+	isOldEqualFF bool
+}
+
+// parsePragma recognizes #pragma statements which can change
+// the way the patch is being applied.
+// The string looks like:
+// #pragma enable old_equal_ff
+// Supported pragmas:
+// * old_equal_ff
+// Unsupported pragmas:
+// * undo
+// * warn_if_new_exist_on_apply
+// * warn_no_old_on_apply
+func parsePragma(currentSettings *chunkSettings, pragmaStr string) error {
+	pragmaPos := strings.Index(pragmaStr, PragmaMarker)
+	if pragmaPos == -1 {
+		return fmt.Errorf("cannot find #pragma string")
+	}
+	pragmaBody := pragmaStr[pragmaPos+len(PragmaMarker)+1:]
+	pragma := strings.Split(pragmaBody, " ")
+	if len(pragma) != 2 {
+		return fmt.Errorf("cannot recognize pragma in string %q", pragmaBody)
+	}
+	if pragma[0] != "enable" && pragma[0] != "disable" {
+		return fmt.Errorf("pragma in string %q is neither enabled nor disabled", pragmaBody)
+	}
+	pragmaEnable := false
+	if pragma[0] == "enable" {
+		pragmaEnable = true
+	}
+	switch pragma[1] {
+	case "old_equal_ff":
+		currentSettings.isOldEqualFF = pragmaEnable
+	default:
+		return fmt.Errorf("unrecognized pragma %q", pragma[1])
+	}
+	return nil
+}
+
 func (pr *PatchReader) parse() error {
 	scanner := bufio.NewScanner(strings.NewReader(pr.txt))
 
 	lineNum := 0
 	var currentAddr int64 = 0
+	var currentSettings chunkSettings
 
 	for scanner.Scan() {
 		lineNum++
@@ -79,6 +125,13 @@ func (pr *PatchReader) parse() error {
 			continue
 		}
 
+		if strings.HasPrefix(patchLine, PragmaMarker) {
+			if err := parsePragma(&currentSettings, patchLine); err != nil {
+				return fmt.Errorf("cannot parse pragma on line %d: %v", lineNum, err)
+			}
+			continue
+		}
+
 		addrPos := strings.Index(patchLine, ":")
 		if addrPos == -1 {
 			return fmt.Errorf("no address info found in line %d", lineNum)
@@ -92,16 +145,35 @@ func (pr *PatchReader) parse() error {
 
 		dataInfo := strings.TrimSpace(patchLine[addrPos+1:])
 		dataFields := strings.Split(dataInfo, " ")
-		if len(dataFields) != 2 {
-			return fmt.Errorf("cannot split string %q into data information", dataInfo)
+
+		var oldData []byte
+		var newDataStr string
+		if !currentSettings.isOldEqualFF {
+			if len(dataFields) != 2 {
+				return fmt.Errorf("cannot split string %q into data information", dataInfo)
+			}
+			var err error
+			oldData, err = parseDataField(dataFields[0])
+			if err != nil {
+				return fmt.Errorf("cannot parse old data: %v", err)
+			}
+			newDataStr = dataFields[1]
+		} else {
+			if len(dataFields) != 1 {
+				return fmt.Errorf("cannot split string %q into data information (old_equal_ff enabled)", dataInfo)
+			}
+			newDataStr = dataFields[0]
 		}
-		oldData, err := parseDataField(dataFields[0])
-		if err != nil {
-			return fmt.Errorf("cannot parse old data: %v", err)
-		}
-		newData, err := parseDataField(dataFields[1])
+		newData, err := parseDataField(newDataStr)
 		if err != nil {
 			return fmt.Errorf("cannot parse new data: %v", err)
+		}
+
+		if currentSettings.isOldEqualFF {
+			oldData = make([]byte, len(newData))
+			for i := 0; i < len(newData); i++ {
+				oldData[i] = 0xFF
+			}
 		}
 
 		// If old and new data have different lengths -- this is a problem.

@@ -25,6 +25,11 @@ func TestLoadPlainPatch(t *testing.T) {
 			NumChunks: 1,
 			wantError: false,
 		},
+		{
+			fileName:  "pragma_old_equal_ff.vkp",
+			NumChunks: 2,
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -37,4 +42,33 @@ func TestLoadPlainPatch(t *testing.T) {
 		}
 	}
 
+}
+
+func TestParsePragma(t *testing.T) {
+	testCases := []struct {
+		pragmaStr string
+		wantError bool
+	}{
+		{
+			pragmaStr: "#pragma enable old_equal_ff",
+			wantError: false,
+		},
+		{
+			pragmaStr: "#pragma disable old_equal_ff",
+			wantError: false,
+		},
+		{
+			pragmaStr: "#pragma disalbe old_equal_ff",
+			wantError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		var settings chunkSettings
+		err := parsePragma(&settings, tc.pragmaStr)
+		if (err != nil) != tc.wantError {
+			t.Fatalf("Test string %q: %t (%v), want %t", tc.pragmaStr, err != nil, err, tc.wantError)
+		}
+
+	}
 }
