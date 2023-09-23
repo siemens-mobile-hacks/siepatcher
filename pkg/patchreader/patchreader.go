@@ -53,12 +53,18 @@ func (pr *PatchReader) NumChunks() int {
 ////////////////////////////////////////////////////////////////////////////
 
 func parseDataField(df string) ([]byte, error) {
-	byteData, err := hex.DecodeString(df)
-	if err != nil {
-		return nil, err
-	}
+	outBuf := make([]byte, 0)
 
-	return byteData, nil
+	dataBlocks := strings.Split(df, ",")
+	for _, dataBlock := range dataBlocks {
+		dataBlock = strings.TrimPrefix(dataBlock, "0x") // 0xA04B1C70 --> A04B1C70
+		byteData, err := hex.DecodeString(dataBlock)
+		if err != nil {
+			return nil, err
+		}
+		outBuf = append(outBuf, byteData...)
+	}
+	return outBuf, nil
 }
 
 type chunkSettings struct {
@@ -213,6 +219,7 @@ func (pr *PatchReader) parse() error {
 		// just extend the previous line.
 		// If this line describes the changes at an address that doesn't follow immediately after the prev line,
 		// create a new chunk.
+		log.Printf("currentAddr = %X, chunk addr = %X", currentAddr, addr)
 		if currentAddr == addr {
 			lastChunk := &pr.chunks[len(pr.chunks)-1]
 			lastChunk.OldData = append(lastChunk.OldData, oldData...)
@@ -225,6 +232,7 @@ func (pr *PatchReader) parse() error {
 			pr.chunks = append(pr.chunks, newChunk)
 			currentAddr = addr
 		}
+		log.Printf("Length of newly appeared data: %X", len(newData))
 		currentAddr += int64(len(newData))
 	}
 	return nil

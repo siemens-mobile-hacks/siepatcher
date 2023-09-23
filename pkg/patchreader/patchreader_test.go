@@ -35,15 +35,20 @@ func TestLoadPlainPatch(t *testing.T) {
 			NumChunks: 3,
 			wantError: false,
 		},
+		{
+			fileName:  "comma_separated_data.vkp",
+			NumChunks: 2,
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {
 		p, err := FromFile(testFileFullPath(tc.fileName))
 		if (err != nil) != tc.wantError {
-			t.Fatalf("Test failure: %t (%v), want %t", err != nil, err, tc.wantError)
+			t.Fatalf("Test %q: %t (%v), want %t", tc.fileName, err != nil, err, tc.wantError)
 		}
 		if p.NumChunks() != tc.NumChunks {
-			t.Fatalf("Got %d chunks in patch, want %d", p.NumChunks(), tc.NumChunks)
+			t.Fatalf("Test %q: Got %d chunks in patch, want %d", tc.fileName, p.NumChunks(), tc.NumChunks)
 		}
 	}
 

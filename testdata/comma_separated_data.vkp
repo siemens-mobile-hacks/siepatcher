@@ -1,0 +1,10 @@
+#pragma enable old_equal_ff
+; Some patch data 
+13D3740: 000000FA7C80BDE8FFB5104880470324
+; 4 bytes of data appended to the previous chunk
+13D3750: 0xA04B1C70
+; Another chunk (2), 12 bytes of data
+13D3790: 0xA01A8535,0xA01A854F,0xA8A7F050 
+; Another four bytes that belong to the previous chunk!
+13D379C: 00000000
+#pragma disable old_equal_ff 
