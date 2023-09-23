@@ -58,7 +58,10 @@ func parseDataField(df string) ([]byte, error) {
 
 func (pr *PatchReader) parse() error {
 	scanner := bufio.NewScanner(strings.NewReader(pr.txt))
+
 	lineNum := 0
+	var currentAddr int64 = 0
+
 	for scanner.Scan() {
 		lineNum++
 		patchLine := scanner.Text()
@@ -76,8 +79,6 @@ func (pr *PatchReader) parse() error {
 			continue
 		}
 
-		newChunk := Chunk{}
-
 		addrPos := strings.Index(patchLine, ":")
 		if addrPos == -1 {
 			return fmt.Errorf("no address info found in line %d", lineNum)
@@ -88,7 +89,6 @@ func (pr *PatchReader) parse() error {
 			return fmt.Errorf("cannot convert %q to int64: %v", addrHex, err)
 		}
 		log.Printf("Address: %X", addr)
-		newChunk.BaseAddr = addr
 
 		dataInfo := strings.TrimSpace(patchLine[addrPos+1:])
 		dataFields := strings.Split(dataInfo, " ")
@@ -103,10 +103,29 @@ func (pr *PatchReader) parse() error {
 		if err != nil {
 			return fmt.Errorf("cannot parse new data: %v", err)
 		}
-		newChunk.OldData = oldData
-		newChunk.NewData = newData
 
-		pr.chunks = append(pr.chunks, newChunk)
+		// If old and new data have different lengths -- this is a problem.
+		if len(oldData) != len(newData) {
+			return fmt.Errorf("old data length (%d) is not equal to new data length (%d)", len(oldData), len(newData))
+		}
+
+		// Now, if this line is describing a continuos block of data together with the previous line,
+		// just extend the previous line.
+		// If this line describes the changes at an address that doesn't follow immediately after the prev line,
+		// create a new chunk.
+		if currentAddr == addr {
+			lastChunk := &pr.chunks[len(pr.chunks)-1]
+			lastChunk.OldData = append(lastChunk.OldData, oldData...)
+			lastChunk.NewData = append(lastChunk.NewData, newData...)
+		} else {
+			newChunk := Chunk{}
+			newChunk.BaseAddr = addr
+			newChunk.OldData = oldData
+			newChunk.NewData = newData
+			pr.chunks = append(pr.chunks, newChunk)
+			currentAddr = addr
+		}
+		currentAddr += int64(len(newData))
 	}
 	return nil
 }

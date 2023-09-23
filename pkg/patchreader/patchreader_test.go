@@ -20,6 +20,11 @@ func TestLoadPlainPatch(t *testing.T) {
 			NumChunks: 1,
 			wantError: false,
 		},
+		{
+			fileName:  "onebigchunk.vkp",
+			NumChunks: 1,
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {
