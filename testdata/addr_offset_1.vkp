@@ -1,0 +1,9 @@
+; Do the offset adjustment right at the beginning.
++100
+; Patch some stuff, one chunk, use two lines for this
+0000: 04A8 6846
+0002: 04A8 6846
++10
+10: 04A8 6846
+12: 04A8 6846
++0

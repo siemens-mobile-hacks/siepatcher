@@ -220,7 +220,7 @@ func (pr *PatchReader) parse() error {
 		// If this line describes the changes at an address that doesn't follow immediately after the prev line,
 		// create a new chunk.
 		log.Printf("currentAddr = %X, chunk addr = %X", currentAddr, addr)
-		if currentAddr == addr {
+		if currentAddr == addr && len(pr.chunks) != 0 {
 			lastChunk := &pr.chunks[len(pr.chunks)-1]
 			lastChunk.OldData = append(lastChunk.OldData, oldData...)
 			lastChunk.NewData = append(lastChunk.NewData, newData...)

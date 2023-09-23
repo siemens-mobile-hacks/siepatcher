@@ -36,6 +36,11 @@ func TestLoadPlainPatch(t *testing.T) {
 			wantError: false,
 		},
 		{
+			fileName:  "addr_offset_1.vkp",
+			NumChunks: 2,
+			wantError: false,
+		},
+		{
 			fileName:  "comma_separated_data.vkp",
 			NumChunks: 2,
 			wantError: false,
