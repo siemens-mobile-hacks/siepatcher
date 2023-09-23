@@ -63,6 +63,7 @@ func parseDataField(df string) ([]byte, error) {
 
 type chunkSettings struct {
 	isOldEqualFF bool
+	addrOffset   int64
 }
 
 // parsePragma recognizes #pragma statements which can change
@@ -101,6 +102,33 @@ func parsePragma(currentSettings *chunkSettings, pragmaStr string) error {
 	return nil
 }
 
+// We get a string like +0x345 here.
+func parseAddrOffset(currentSettings *chunkSettings, offsetStr string) error {
+
+	sign := offsetStr[0]
+	offStr := offsetStr[1:]
+	var intValue int64
+	var err error
+	if strings.HasPrefix(offStr, "0x") {
+		hexOff := offStr[2:]
+		intValue, err = strconv.ParseInt(hexOff, 16, 64)
+		if err != nil {
+			return fmt.Errorf("cannot parse %q as hex string: %v", hexOff, err)
+		}
+	} else {
+		intValue, err = strconv.ParseInt(offStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("cannot parse %q as dec string: %v", offStr, err)
+		}
+	}
+	if sign == '-' {
+		intValue = -intValue
+	}
+	currentSettings.addrOffset = intValue
+
+	return nil
+}
+
 func (pr *PatchReader) parse() error {
 	scanner := bufio.NewScanner(strings.NewReader(pr.txt))
 
@@ -128,6 +156,13 @@ func (pr *PatchReader) parse() error {
 		if strings.HasPrefix(patchLine, PragmaMarker) {
 			if err := parsePragma(&currentSettings, patchLine); err != nil {
 				return fmt.Errorf("cannot parse pragma on line %d: %v", lineNum, err)
+			}
+			continue
+		}
+
+		if patchLine[0] == '+' || patchLine[0] == '-' {
+			if err := parseAddrOffset(&currentSettings, patchLine); err != nil {
+				return fmt.Errorf("cannot parse address offset on line %d: %v", lineNum, err)
 			}
 			continue
 		}

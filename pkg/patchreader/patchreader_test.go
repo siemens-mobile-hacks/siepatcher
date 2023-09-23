@@ -30,6 +30,11 @@ func TestLoadPlainPatch(t *testing.T) {
 			NumChunks: 2,
 			wantError: false,
 		},
+		{
+			fileName:  "addr_offset.vkp",
+			NumChunks: 3,
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {

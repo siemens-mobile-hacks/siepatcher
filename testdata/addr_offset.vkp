@@ -1,0 +1,12 @@
+; Patch some stuff, one chunk, use two lines for this
+02F75A2: 04A8 6846
+02F75A4: 04A8 6846
+; Now apply an address offset
++0x100
+; This line will go into a separate chunk! because it actually starts at 02F76A6
+02F75A6: 04A8 6846
+; Apply another offset and generate another chunk.
++10
+10: 04A8 6846
+30: 04A8 6846
++0
