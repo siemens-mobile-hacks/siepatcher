@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -138,14 +137,12 @@ func (pr *PatchReader) parse() error {
 	for scanner.Scan() {
 		lineNum++
 		patchLine := scanner.Text()
-		log.Printf("Read line: %q", patchLine)
 
 		commentPos := strings.Index(patchLine, ";")
 		if commentPos != -1 {
 			patchLine = patchLine[:commentPos]
 		}
 		patchLine = strings.TrimSpace(patchLine)
-		log.Printf("Line w/o comments: %q", patchLine)
 
 		// If there is nothing left in the string -- ignore it.
 		if len(patchLine) == 0 {
@@ -154,28 +151,27 @@ func (pr *PatchReader) parse() error {
 
 		if strings.HasPrefix(patchLine, PragmaMarker) {
 			if err := parsePragma(&currentSettings, patchLine); err != nil {
-				return fmt.Errorf("cannot parse pragma on line %d: %v", lineNum, err)
+				return fmt.Errorf("line %d: cannot parse pragma: %v", lineNum, err)
 			}
 			continue
 		}
 
 		if patchLine[0] == '+' || patchLine[0] == '-' {
 			if err := parseAddrOffset(&currentSettings, patchLine); err != nil {
-				return fmt.Errorf("cannot parse address offset on line %d: %v", lineNum, err)
+				return fmt.Errorf("line %d: cannot parse address offset: %v", lineNum, err)
 			}
 			continue
 		}
 
 		addrPos := strings.Index(patchLine, ":")
 		if addrPos == -1 {
-			return fmt.Errorf("no address info found in line %d", lineNum)
+			return fmt.Errorf("line %d: no address info found", lineNum)
 		}
-		addrHex := patchLine[:addrPos]
+		addrHex := strings.TrimPrefix(patchLine[:addrPos], "0x")
 		addr, err := strconv.ParseInt(addrHex, 16, 64)
 		if err != nil {
-			return fmt.Errorf("cannot convert %q to int64: %v", addrHex, err)
+			return fmt.Errorf("line %d: cannot convert address %q to int64: %v", lineNum, addrHex, err)
 		}
-		log.Printf("Address: %X", addr)
 
 		dataInfo := strings.TrimSpace(patchLine[addrPos+1:])
 		dataFields := strings.Split(dataInfo, " ")
@@ -219,7 +215,6 @@ func (pr *PatchReader) parse() error {
 		// just extend the previous line.
 		// If this line describes the changes at an address that doesn't follow immediately after the prev line,
 		// create a new chunk.
-		log.Printf("currentAddr = %X, chunk addr = %X", currentAddr, addr)
 		if currentAddr == addr && len(pr.chunks) != 0 {
 			lastChunk := &pr.chunks[len(pr.chunks)-1]
 			lastChunk.OldData = append(lastChunk.OldData, oldData...)
@@ -232,7 +227,6 @@ func (pr *PatchReader) parse() error {
 			pr.chunks = append(pr.chunks, newChunk)
 			currentAddr = addr
 		}
-		log.Printf("Length of newly appeared data: %X", len(newData))
 		currentAddr += int64(len(newData))
 	}
 	return nil
