@@ -21,6 +21,14 @@ type Chunk struct {
 	NewData  []byte
 }
 
+func (c *Chunk) Size() int64 {
+	return int64(len(c.NewData))
+}
+
+func (c *Chunk) EndAddr() int64 {
+	return c.BaseAddr + c.Size()
+}
+
 type PatchReader struct {
 	txt    string
 	chunks []Chunk
@@ -46,6 +54,10 @@ func (pr *PatchReader) String() string {
 
 func (pr *PatchReader) NumChunks() int {
 	return len(pr.chunks)
+}
+
+func (pr *PatchReader) Chunks() []Chunk {
+	return pr.chunks
 }
 
 ////////////////////////////////////////////////////////////////////////////
