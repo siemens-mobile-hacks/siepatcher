@@ -1,0 +1,7 @@
+/* C-style comment on one line */
+02F75A2: 04A8 6846 /* this will be the first chunk */
+/*
+ C-style comment spawning several lines!
+ This is a big comment!
+*/
+03F75A2: 04A8 6846 /* this will be the second chunk */

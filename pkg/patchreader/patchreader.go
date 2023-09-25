@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -127,7 +128,16 @@ func parseAddrOffset(currentSettings *chunkSettings, offsetStr string) error {
 	return nil
 }
 
+func removeMultilineComments(text string) string {
+	r := regexp.MustCompile(`(?s)/\*.*?\*/`)
+	return r.ReplaceAllString(text, "")
+}
+
 func (pr *PatchReader) parse() error {
+
+	// Remove mult-line comments.
+	pr.txt = removeMultilineComments(pr.txt)
+
 	scanner := bufio.NewScanner(strings.NewReader(pr.txt))
 
 	lineNum := 0

@@ -45,6 +45,11 @@ func TestLoadPlainPatch(t *testing.T) {
 			NumChunks: 2,
 			wantError: false,
 		},
+		{
+			fileName:  "multiline_comments.vkp",
+			NumChunks: 2,
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {
