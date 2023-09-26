@@ -66,6 +66,58 @@ func (pr *PatchReader) Chunks() []Chunk {
 // VKP file format: http://www.vi-soft.com.ua/siemens/vkp_file_format.txt //
 ////////////////////////////////////////////////////////////////////////////
 
+func parseDecimalNum(dataBlock string) ([]byte, error) {
+	outBuf := make([]byte, 0)
+
+	isSigned := dataBlock[0] == '-'
+	numberLen := len(dataBlock)
+	if isSigned {
+		numberLen -= 1
+	}
+	intValue, err := strconv.ParseInt(dataBlock, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse %q as int string: %v", dataBlock, err)
+	}
+	nBytes := 1
+	if numberLen >= 5 {
+		nBytes = 2
+	}
+	if numberLen >= 8 {
+		nBytes = 3
+	}
+	if numberLen >= 10 {
+		nBytes = 4
+	}
+	if numberLen >= 13 {
+		nBytes = 5
+	}
+	if numberLen >= 15 {
+		nBytes = 6
+	}
+	if numberLen >= 17 {
+		nBytes = 7
+	}
+	if numberLen >= 20 {
+		nBytes = 8
+	}
+
+	reqBits := bits.Len64(uint64(math.Abs(float64(intValue))))
+	if isSigned {
+		reqBits += 1
+	}
+	// v_Klay doesn't detect this, but we do.
+	if reqBits > nBytes*8 {
+		return nil, fmt.Errorf("Need at least %d bytes to represent %d, but have only %d", reqBits, intValue, nBytes*8)
+	}
+
+	for i := 0; i < nBytes; i++ {
+		var b uint8
+		b = byte((intValue >> (i * 8)) & 0xFF)
+		outBuf = append(outBuf, b)
+	}
+	return outBuf, nil
+}
+
 func parseDataField(df string) ([]byte, error) {
 	outBuf := make([]byte, 0)
 
@@ -73,58 +125,11 @@ func parseDataField(df string) ([]byte, error) {
 	for _, dataBlock := range dataBlocks {
 		if strings.HasPrefix(dataBlock, "0i") {
 			dataBlock = strings.TrimPrefix(dataBlock, "0i") // 0i46 --> 46
-			isSigned := dataBlock[0] == '-'
-			numberLen := len(dataBlock)
-			if isSigned {
-				numberLen -= 1
-			}
-			intValue, err := strconv.ParseInt(dataBlock, 10, 64)
+			byteData, err := parseDecimalNum(dataBlock)
 			if err != nil {
-				return nil, fmt.Errorf("cannot parse %q as int string: %v", dataBlock, err)
+				return nil, err
 			}
-			//			fmt.Printf("dataBlock=%s, isSigned=%t, intValue=%d, length=%d\n", dataBlock, isSigned, intValue, numberLen)
-			nBytes := 1
-			if numberLen >= 5 {
-				nBytes = 2
-			}
-			if numberLen >= 8 {
-				nBytes = 3
-			}
-			if numberLen >= 10 {
-				nBytes = 4
-			}
-			if numberLen >= 13 {
-				nBytes = 5
-			}
-			if numberLen >= 15 {
-				nBytes = 6
-			}
-			if numberLen >= 17 {
-				nBytes = 7
-			}
-			if numberLen >= 20 {
-				nBytes = 8
-			}
-
-			reqBits := bits.Len64(uint64(math.Abs(float64(intValue))))
-			if isSigned {
-				reqBits += 1
-			}
-			// v_Klay doesn't detect this, but we do.
-			if reqBits > nBytes*8 {
-				return nil, fmt.Errorf("Need at least %d bytes to represent %d, but have only %d", reqBits, intValue, nBytes*8)
-			}
-
-			for i := 0; i < nBytes; i++ {
-				var b uint8
-				b = byte((intValue >> (i * 8)) & 0xFF)
-				outBuf = append(outBuf, b)
-			}
-			fmt.Printf("Output: %v [", outBuf)
-			for _, i := range outBuf {
-				fmt.Printf("%X ", i)
-			}
-			fmt.Println("]")
+			outBuf = append(outBuf, byteData...)
 			continue
 		}
 		dataBlock = strings.TrimPrefix(dataBlock, "0x") // 0xA04B1C70 --> A04B1C70
