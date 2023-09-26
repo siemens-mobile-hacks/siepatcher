@@ -50,6 +50,11 @@ func TestLoadPlainPatch(t *testing.T) {
 			NumChunks: 2,
 			wantError: false,
 		},
+		{
+			fileName:  "ints_in_data.vkp",
+			NumChunks: 1,
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {

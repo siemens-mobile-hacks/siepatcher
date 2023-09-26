@@ -1,0 +1,5 @@
+; Integers in the old data
+00401500: 0i4 0i233 ; One byte of int data
+00401501: 0i255,0i255 0i65533 ; Two bytes of int data
+00401503: 0i-1,0i255 0i-00008 ; Two bytes of int data
+00401505: 0i4,0i100 0i-20,0i-100 ; Another two bytes of data
