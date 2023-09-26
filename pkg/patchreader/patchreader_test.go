@@ -56,6 +56,11 @@ func TestLoadPlainPatch(t *testing.T) {
 			NumChunks: 1,
 			wantError: false,
 		},
+		{
+			fileName:  "more_old_than_new.vkp",
+			NumChunks: 1,
+			wantError: false,
+		},
 	}
 
 	for _, tc := range testCases {

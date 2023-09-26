@@ -107,12 +107,11 @@ func parseDecimalNum(dataBlock string) ([]byte, error) {
 	}
 	// v_Klay doesn't detect this, but we do.
 	if reqBits > nBytes*8 {
-		return nil, fmt.Errorf("Need at least %d bytes to represent %d, but have only %d", reqBits, intValue, nBytes*8)
+		return nil, fmt.Errorf("need at least %d bytes to represent %d, but have only %d", reqBits, intValue, nBytes*8)
 	}
 
 	for i := 0; i < nBytes; i++ {
-		var b uint8
-		b = byte((intValue >> (i * 8)) & 0xFF)
+		var b uint8 = byte((intValue >> (i * 8)) & 0xFF)
 		outBuf = append(outBuf, b)
 	}
 	return outBuf, nil
@@ -291,9 +290,9 @@ func (pr *PatchReader) parse() error {
 			}
 		}
 
-		// If old and new data have different lengths -- this is a problem.
-		if len(oldData) != len(newData) {
-			return fmt.Errorf("old data length (%d) is not equal to new data length (%d)", len(oldData), len(newData))
+		// If old data is smaller than new data -- this is a problem.
+		if len(oldData) < len(newData) {
+			return fmt.Errorf("old data length (%d) smaller than new data length (%d)", len(oldData), len(newData))
 		}
 
 		// Now, if this line is describing a continuos block of data together with the previous line,
