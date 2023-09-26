@@ -264,23 +264,23 @@ func (pr *PatchReader) parse() error {
 		var newDataStr string
 		if !currentSettings.isOldEqualFF {
 			if len(dataFields) != 2 {
-				return fmt.Errorf("cannot split string %q into data information", dataInfo)
+				return fmt.Errorf("line %d: cannot split string %q into data information", lineNum, dataInfo)
 			}
 			var err error
 			oldData, err = parseDataField(dataFields[0])
 			if err != nil {
-				return fmt.Errorf("cannot parse old data: %v", err)
+				return fmt.Errorf("line %d: cannot parse old data: %v", lineNum, err)
 			}
 			newDataStr = dataFields[1]
 		} else {
 			if len(dataFields) != 1 {
-				return fmt.Errorf("cannot split string %q into data information (old_equal_ff enabled)", dataInfo)
+				return fmt.Errorf("line %d: cannot split string %q into data information (old_equal_ff enabled)", lineNum, dataInfo)
 			}
 			newDataStr = dataFields[0]
 		}
 		newData, err := parseDataField(newDataStr)
 		if err != nil {
-			return fmt.Errorf("cannot parse new data: %v", err)
+			return fmt.Errorf("line %d: cannot parse new data: %v", lineNum, err)
 		}
 
 		if currentSettings.isOldEqualFF {
@@ -292,7 +292,7 @@ func (pr *PatchReader) parse() error {
 
 		// If old data is smaller than new data -- this is a problem.
 		if len(oldData) < len(newData) {
-			return fmt.Errorf("old data length (%d) smaller than new data length (%d)", len(oldData), len(newData))
+			return fmt.Errorf("line %d: old data length (%d) smaller than new data length (%d)", lineNum, len(oldData), len(newData))
 		}
 
 		// Now, if this line is describing a continuos block of data together with the previous line,
