@@ -20,7 +20,7 @@ func NewPhone(serialPortNameOrPath string) (*Phone, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot open serial port %q: %v", serialPortNameOrPath, err)
 	}
-	pmb := pmb887x.NewPMB(serialPort)
+	pmb := pmb887x.NewPMB(serialPort, pmb887x.ServiceModeBoot)
 	return &Phone{
 		dev:        pmb,
 		serialPort: serialPort,

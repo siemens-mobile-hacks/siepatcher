@@ -51,7 +51,7 @@ func (e *EmulatorDevice) Connect() error {
 	}
 	log.Println("Emulator connected")
 
-	e.dev = pmb887x.NewPMB(conn)
+	e.dev = pmb887x.NewPMB(conn, pmb887x.ServiceModeBoot)
 
 	return e.dev.LoadBoot()
 }

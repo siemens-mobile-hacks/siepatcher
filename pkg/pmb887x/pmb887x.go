@@ -11,11 +11,13 @@ import (
 // a simple bi-directional stream of bytes.
 type Device struct {
 	iostream io.ReadWriteCloser
+	bootcode []byte
 }
 
-func NewPMB(io io.ReadWriteCloser) Device {
+func NewPMB(io io.ReadWriteCloser, bootcode []byte) Device {
 	return Device{
 		iostream: io,
+		bootcode: bootcode,
 	}
 }
 
@@ -67,11 +69,11 @@ func (pmb *Device) LoadBoot() error {
 	log.Printf("Device type: %s", deviceTypeStr)
 
 	// Prepare payload.
-	ldrLen := len(serviceModeBoot)
+	ldrLen := len(pmb.bootcode)
 	payload := []byte{0x30, byte(ldrLen & 0xFF), byte((ldrLen >> 8) & 0xFF)}
 	var chk byte = 0
 	for i := 0; i < ldrLen; i++ {
-		var b byte = serviceModeBoot[i]
+		var b byte = pmb.bootcode[i]
 		chk ^= b
 		payload = append(payload, b)
 	}
