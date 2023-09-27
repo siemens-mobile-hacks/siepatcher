@@ -1,0 +1,5 @@
+github.com/FObersteiner/goserial v0.1.2 h1:O4Thdb9lq1+ofD9ZfUn0XVaSN25vdnevJSaTwkjFn0Y=
+github.com/FObersteiner/goserial v0.1.2/go.mod h1:spfZkEd2p+qMTbXPxWePzAYWfrGoUTodKbJIBZi3nQ4=
+golang.org/x/sys v0.7.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.12.0 h1:CM0HF96J0hcLAwsHPJZjfdNzs0gftsLfgKt57wWHJ0o=
+golang.org/x/sys v0.12.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=

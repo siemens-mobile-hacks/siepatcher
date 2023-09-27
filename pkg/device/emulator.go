@@ -49,7 +49,7 @@ func (e *EmulatorDevice) Connect() error {
 	if err != nil {
 		return fmt.Errorf("cannot accept emulator connection: %v", err)
 	}
-	log.Printf("Emulator connected from %s", conn.RemoteAddr())
+	log.Println("Emulator connected")
 
 	e.dev = pmb887x.NewPMB(conn)
 

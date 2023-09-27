@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 )
 
 // Device is an entity that can run bootloaders and interact with us via
@@ -21,28 +22,49 @@ func NewPMB(io io.ReadWriteCloser) Device {
 // LoadBoot initializes PMB serial communication and sends the bootloader.
 func (pmb *Device) LoadBoot() error {
 	log.Println("Initializing connection")
-	if _, err := pmb.iostream.Write([]byte("ATAT")); err != nil {
-		return fmt.Errorf("error writing to client: %v", err)
-	}
 
 	var buf []byte = make([]byte, 1)
-	n, err := pmb.iostream.Read(buf)
-	if err != nil {
-		return fmt.Errorf("error reading from client: %v", err)
-	}
-	log.Printf("Read %d bytes", n)
-	phoneType := buf[0]
+	var deviceType byte
+	fmt.Println("Press RED button!")
+	stopAT := false
 
-	var phoneTypeStr string
-	switch phoneType {
-	case 0xB0:
-		phoneTypeStr = "SGOLD"
-	case 0xC0:
-		phoneTypeStr = "SGOLD2"
-	default:
-		return fmt.Errorf("unknown phone type %x", phoneType)
+	// Start spamming our device with a bunch of ATs.
+	go func() {
+		for {
+			if _, err := pmb.iostream.Write([]byte("AT")); err != nil {
+				fmt.Printf("error writing to client: %v", err)
+			}
+			fmt.Printf(".")
+			if stopAT {
+				return
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
+
+	// Read a phone type from the interface.
+	for {
+		_, err := pmb.iostream.Read(buf)
+		if err != nil {
+			return fmt.Errorf("error reading from client: %v", err)
+		}
+		deviceType = buf[0]
+		if deviceType == 0xB0 || deviceType == 0xC0 {
+			fmt.Println("\nConnected!")
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
-	log.Printf("Phone type: %s", phoneTypeStr)
+	var deviceTypeStr string
+	switch deviceType {
+	case 0xB0:
+		deviceTypeStr = "SGOLD"
+	case 0xC0:
+		deviceTypeStr = "SGOLD2"
+	default:
+		return fmt.Errorf("unknown device type %x", deviceType)
+	}
+	log.Printf("Device type: %s", deviceTypeStr)
 
 	// Prepare payload.
 	ldrLen := len(serviceModeBoot)
@@ -68,8 +90,11 @@ func (pmb *Device) LoadBoot() error {
 	}
 	fmt.Println()
 
+	// Give bootloader some time to init.
+	time.Sleep(100 * time.Millisecond)
+
 	fmt.Println("Waiting for ACK")
-	n, err = pmb.iostream.Read(buf)
+	n, err := pmb.iostream.Read(buf)
 	if err != nil {
 		return fmt.Errorf("error reading from client: %v", err)
 	}
@@ -79,7 +104,7 @@ func (pmb *Device) LoadBoot() error {
 	if !(ack == 0xC1 || ack == 0xB1) {
 		return fmt.Errorf("uknown ack byte %x", ack)
 	}
-	log.Println("Boot code loaded!")
+	log.Println("Boot code loaded")
 	return nil
 }
 
