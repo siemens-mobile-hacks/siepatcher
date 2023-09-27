@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"os"
@@ -15,7 +16,38 @@ var (
 	chaosLoader = flag.String("loader", "", "Path to Chaos bootloader (.bin file).")
 )
 
+type ChaosInfo struct {
+	ModelName     [16]byte
+	Manufacturer  [16]byte
+	IMEI          [16]byte
+	Reserved0     [16]byte
+	FlashBaseAddr uint32
+	Reserved1     [12]byte
+}
+
+func parseChaosInfo() {
+	f, err := os.Open("/Users/kibab/repos/siepatcher/cmd/chaosloader/chaos-infodump.bin")
+	if err != nil {
+		panic("Cannot read file")
+	}
+
+	var info ChaosInfo
+	if err := binary.Read(f, binary.LittleEndian, &info); err != nil {
+		fmt.Println("failed to Read:", err)
+		return
+	}
+
+	fmt.Printf("Model=%s\nmfg=%s\nIMEI=%s\nFlashBaseAddr=0x%08X\n",
+		info.ModelName,
+		info.Manufacturer,
+		info.IMEI,
+		info.FlashBaseAddr)
+}
+
 func main() {
+
+	//parseChaosInfo()
+	//os.Exit(0)
 
 	var dev device.Device
 	var err error

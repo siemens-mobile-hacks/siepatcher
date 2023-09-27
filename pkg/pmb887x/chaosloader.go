@@ -3,6 +3,7 @@ package pmb887x
 import (
 	"encoding/hex"
 	"fmt"
+	"log"
 )
 
 type ChaosLoader struct {
@@ -32,6 +33,7 @@ func (cl *ChaosLoader) Activate() error {
 	if !pong {
 		return fmt.Errorf("chaos didn't reply to the first ping")
 	}
+	log.Print("Chaos bootloader activated")
 	return nil
 }
 
@@ -56,16 +58,16 @@ func (cl *ChaosLoader) ReadInfo() error {
 	if _, err := cl.pmb.iostream.Write([]byte{'I'}); err != nil {
 		return err
 	}
-	longDelay()
+	shortDelay()
 	reply := make([]byte, 128)
 	var n int
 	var err error
 	if n, err = cl.pmb.iostream.Read(reply); err != nil {
 		return err
 	}
+	fmt.Printf("len=%d bytes:\n%s\n", n, hex.Dump(reply[0:n]))
 	if n < 128 {
 		return fmt.Errorf("less than 128 bytes read: %d", n)
 	}
-	fmt.Printf("%s\n", hex.Dump(reply))
 	return nil
 }

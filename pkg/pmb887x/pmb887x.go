@@ -39,13 +39,13 @@ func (pmb *Device) LoadBoot(bootcode []byte) error {
 	// Start spamming our device with a bunch of ATs.
 	go func() {
 		for {
-			if _, err := pmb.iostream.Write([]byte("AT")); err != nil {
-				fmt.Printf("error writing to client: %v", err)
-			}
-			fmt.Printf(".")
 			if stopAT {
 				return
 			}
+			if _, err := pmb.iostream.Write([]byte("AT")); err != nil {
+				fmt.Printf("error writing to client: %v", err)
+			}
+			fmt.Print(".")
 			shortDelay()
 		}
 	}()
@@ -62,7 +62,6 @@ func (pmb *Device) LoadBoot(bootcode []byte) error {
 			stopAT = true
 			break
 		}
-		shortDelay()
 	}
 	var deviceTypeStr string
 	switch deviceType {
