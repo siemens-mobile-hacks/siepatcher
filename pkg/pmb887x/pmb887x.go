@@ -11,18 +11,24 @@ import (
 // a simple bi-directional stream of bytes.
 type Device struct {
 	iostream io.ReadWriteCloser
-	bootcode []byte
 }
 
-func NewPMB(io io.ReadWriteCloser, bootcode []byte) Device {
+func NewPMB(io io.ReadWriteCloser) Device {
 	return Device{
 		iostream: io,
-		bootcode: bootcode,
 	}
 }
 
+func shortDelay() {
+	time.Sleep(100 * time.Millisecond)
+}
+
+func longDelay() {
+	time.Sleep(500 * time.Millisecond)
+}
+
 // LoadBoot initializes PMB serial communication and sends the bootloader.
-func (pmb *Device) LoadBoot() error {
+func (pmb *Device) LoadBoot(bootcode []byte) error {
 	log.Println("Initializing connection")
 
 	var buf []byte = make([]byte, 1)
@@ -40,7 +46,7 @@ func (pmb *Device) LoadBoot() error {
 			if stopAT {
 				return
 			}
-			time.Sleep(100 * time.Millisecond)
+			shortDelay()
 		}
 	}()
 
@@ -53,9 +59,10 @@ func (pmb *Device) LoadBoot() error {
 		deviceType = buf[0]
 		if deviceType == 0xB0 || deviceType == 0xC0 {
 			fmt.Println("\nConnected!")
+			stopAT = true
 			break
 		}
-		time.Sleep(100 * time.Millisecond)
+		shortDelay()
 	}
 	var deviceTypeStr string
 	switch deviceType {
@@ -69,18 +76,17 @@ func (pmb *Device) LoadBoot() error {
 	log.Printf("Device type: %s", deviceTypeStr)
 
 	// Prepare payload.
-	ldrLen := len(pmb.bootcode)
+	ldrLen := len(bootcode)
 	payload := []byte{0x30, byte(ldrLen & 0xFF), byte((ldrLen >> 8) & 0xFF)}
 	var chk byte = 0
 	for i := 0; i < ldrLen; i++ {
-		var b byte = pmb.bootcode[i]
+		var b byte = bootcode[i]
 		chk ^= b
 		payload = append(payload, b)
 	}
 	payload = append(payload, chk)
 
 	log.Printf("Generated loader payload len %d", len(payload))
-	//fmt.Printf("%s\n", hex.Dump(payload))
 
 	// Send payload.
 	log.Println("Sending payload")
@@ -93,7 +99,7 @@ func (pmb *Device) LoadBoot() error {
 	fmt.Println()
 
 	// Give bootloader some time to init.
-	time.Sleep(100 * time.Millisecond)
+	shortDelay()
 
 	fmt.Println("Waiting for ACK")
 	n, err := pmb.iostream.Read(buf)

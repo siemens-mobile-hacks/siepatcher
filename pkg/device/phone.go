@@ -20,7 +20,8 @@ func NewPhone(serialPortNameOrPath string) (*Phone, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot open serial port %q: %v", serialPortNameOrPath, err)
 	}
-	pmb := pmb887x.NewPMB(serialPort, pmb887x.ServiceModeBoot)
+
+	pmb := pmb887x.NewPMB(serialPort)
 	return &Phone{
 		dev:        pmb,
 		serialPort: serialPort,
@@ -32,8 +33,11 @@ func (p *Phone) Name() string {
 	return fmt.Sprintf("Real phone at %q", p.serialPath)
 }
 
-func (p *Phone) Connect() error {
-	return p.dev.LoadBoot()
+func (p *Phone) ConnectAndBoot(loaderBin []byte) error {
+	if err := p.dev.LoadBoot(loaderBin); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Phone) Disconnect() error {
@@ -44,10 +48,6 @@ func (p *Phone) SetSpeed(speed int) error {
 	return nil
 }
 
-func (p *Phone) ReadRegion(baseAddr, size int64) ([]byte, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (p *Phone) WriteRegion(baseAddr int64, block []byte) error {
-	return fmt.Errorf("not implemented")
+func (p *Phone) PMB() pmb887x.Device {
+	return p.dev
 }

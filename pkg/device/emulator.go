@@ -41,7 +41,7 @@ func (e *EmulatorDevice) Name() string {
 	return fmt.Sprintf("pmb887x-emulator on %q", e.socketPath)
 }
 
-func (e *EmulatorDevice) Connect() error {
+func (e *EmulatorDevice) ConnectAndBoot(loaderBin []byte) error {
 
 	log.Println("Waiting for emulator to connect")
 	// This blocks until an emulator connects!
@@ -51,9 +51,8 @@ func (e *EmulatorDevice) Connect() error {
 	}
 	log.Println("Emulator connected")
 
-	e.dev = pmb887x.NewPMB(conn, pmb887x.ServiceModeBoot)
-
-	return e.dev.LoadBoot()
+	e.dev = pmb887x.NewPMB(conn)
+	return e.dev.LoadBoot(loaderBin)
 }
 
 func (e *EmulatorDevice) Disconnect() error {
@@ -64,10 +63,6 @@ func (e *EmulatorDevice) SetSpeed(speed int) error {
 	return nil
 }
 
-func (e *EmulatorDevice) ReadRegion(baseAddr, size int64) ([]byte, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (e *EmulatorDevice) WriteRegion(baseAddr int64, block []byte) error {
-	return fmt.Errorf("not implemented")
+func (e *EmulatorDevice) PMB() pmb887x.Device {
+	return e.dev
 }

@@ -1,12 +1,13 @@
 package device
 
+import "github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
+
 type Device interface {
 	// Name() returns a name and maybe some extra info about this Device. This info is not machine readable.
 	Name() string
-	// Connect() connects to the device. It may block. When it returns, a consumer can immediately read and write memory regions.
-	Connect() error
+	// Connect() connects to the device. It may block.
+	ConnectAndBoot(loaderBin []byte) error
 	Disconnect() error
 	SetSpeed(speed int) error
-	ReadRegion(baseAddr, size int64) ([]byte, error)
-	WriteRegion(baseAddr int64, block []byte) error
+	PMB() pmb887x.Device
 }
