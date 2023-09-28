@@ -24,7 +24,8 @@ func main() {
 	flag.Parse()
 
 	if *chaosInfoFile != "" {
-		pmb887x.ParseChaosInfo(*chaosInfoFile)
+		info := pmb887x.ParseChaosInfo(*chaosInfoFile)
+		fmt.Println(info)
 		os.Exit(0)
 	}
 
