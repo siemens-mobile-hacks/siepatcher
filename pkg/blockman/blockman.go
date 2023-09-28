@@ -59,8 +59,12 @@ func (b *Blockman) ParamsForAddr(addr int64) (baseAddr, size int64, err error) {
 	return -1, -1, fmt.Errorf("wtf?! Block not found for addr %X", addr)
 }
 
-func (b *Blockman) String() string {
-	info := fmt.Sprintf("%d regions, start addr 0x%X, end addr 0x%X\n", len(b.blockRegions), b.baseAddr, b.endAddr)
-	info += fmt.Sprintf("Total size: %d MB\n", (b.endAddr-b.baseAddr)/1024/1024)
+// String implements Stringer interface.
+func (b Blockman) String() string {
+	info := fmt.Sprintf("Total size: %d MB\n", b.totalSize/1024/1024)
+	info += fmt.Sprintf("%d regions, start addr 0x%X, end addr 0x%X\n", len(b.blockRegions), b.baseAddr, b.endAddr)
+	for i, reg := range b.blockRegions {
+		info += fmt.Sprintf("  Region #%d: [%08X, %08X] %d blocks, size of each 0x%X\n", i, reg.baseAddr, reg.endAddr, reg.blockCount, reg.blockSize)
+	}
 	return info
 }
