@@ -108,6 +108,9 @@ func (pmb *Device) LoadBoot(bootcode []byte) error {
 	log.Printf("Read %d bytes", n)
 	ack := buf[0]
 
+	if ack == 0x1C || ack == 0x1B {
+		return fmt.Errorf("bootcode rejected by firmware (%x)", ack)
+	}
 	if !(ack == 0xC1 || ack == 0xB1) {
 		return fmt.Errorf("uknown ack byte %x", ack)
 	}
