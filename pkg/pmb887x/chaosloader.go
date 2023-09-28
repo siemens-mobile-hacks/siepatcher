@@ -5,8 +5,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"math"
 	"os"
+
+	"github.com/siemens-mobile-hacks/siepatcher/pkg/blockman"
 )
 
 /*
@@ -50,7 +51,22 @@ From Azq2:
 00000060  ff ff ff ff ff ff ff ff  00 00 00 00 00 00 00 00  |................|
 00000070  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
 */
-type ChaosInfo struct {
+
+// ChaosPhoneInfo holds information that we got and parsed from Chaos bootloader running on the device.
+type ChaosPhoneInfo struct {
+	ModelName    string
+	Manufacturer string
+	IMEI         string
+	bm           blockman.Blockman
+}
+
+// String implements fmt.Stringer.
+func (i ChaosPhoneInfo) String() string {
+	return fmt.Sprintf("Model %s by %s, IMEI %s\nFlash map:\n%s", i.ModelName, i.Manufacturer, i.IMEI, i.bm)
+}
+
+// chaosInfo describes the on-the-wire format of reply to "info" command.
+type chaosInfo struct {
 	ModelName                   [16]byte
 	Manufacturer                [16]byte
 	IMEI                        [16]byte
@@ -115,6 +131,8 @@ func (cl *ChaosLoader) Ping() (bool, error) {
 	return false, nil
 }
 
+// ReadInfo sends "Get info" command to the bootloader and dumps the result.
+// TODO: parse the result into ChaosPhoneInfo and return it.
 func (cl *ChaosLoader) ReadInfo() error {
 	fmt.Println("Requesting information")
 	shortDelay()
@@ -136,26 +154,35 @@ func (cl *ChaosLoader) ReadInfo() error {
 }
 
 // ParseChaosInfo parses an info dump saved in a file into a structure.
-// This function is WIP!
-// TODO: return the parsed structure, nuke all the printfs.
-func ParseChaosInfo(filePath string) {
+// TODO: Accept an io.Reader, not a path to file; return error as the second return value.
+func ParseChaosInfo(filePath string) ChaosPhoneInfo {
 	f, err := os.Open(filePath)
 	if err != nil {
 		panic("Cannot read file")
 	}
 
-	var info ChaosInfo
+	var info chaosInfo
 	if err := binary.Read(f, binary.LittleEndian, &info); err != nil {
 		fmt.Println("failed to Read:", err)
-		return
+		return ChaosPhoneInfo{}
 	}
 
-	fmt.Printf("Model=%s\nmfg=%s\nIMEI=%s\nFlashBaseAddr=0x%08X, flashSizePow=%d\n",
-		info.ModelName,
-		info.Manufacturer,
-		info.IMEI,
-		info.FlashBaseAddr, info.FlashSizePow)
+	phoneInfo := ChaosPhoneInfo{
+		ModelName:    string(info.ModelName[:]),
+		Manufacturer: string(info.Manufacturer[:]),
+		IMEI:         string(info.IMEI[:]),
+	}
 
-	flashSize := int(math.Pow(2, float64(info.FlashSizePow)))
-	fmt.Printf("Flash size: %d bytes (%d MB), %d regions\n", flashSize, flashSize/1024/1024, info.FlashRegionsNum)
+	phoneInfo.bm = blockman.New(int64(info.FlashBaseAddr))
+	if info.FlashRegionsNum >= 1 {
+		phoneInfo.bm.AddRegion(int64(info.FlashRegion0BlockSizeDiv256)*256, int(info.FlashRegion0BlocksNumMinus1)+1)
+	}
+	if info.FlashRegionsNum >= 2 {
+		phoneInfo.bm.AddRegion(int64(info.FlashRegion1BlockSizeDiv256)*256, int(info.FlashRegion1BlocksNumMinus1)+1)
+	}
+	if info.FlashRegionsNum >= 3 {
+		phoneInfo.bm.AddRegion(int64(info.FlashRegion2BlockSizeDiv256)*256, int(info.FlashRegion2BlocksNumMinus1)+1)
+	}
+
+	return phoneInfo
 }
