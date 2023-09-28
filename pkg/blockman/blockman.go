@@ -19,7 +19,7 @@ type Blockman struct {
 func New(baseAddr int64) Blockman {
 	return Blockman{
 		baseAddr:     baseAddr,
-		endAddr:      baseAddr,
+		endAddr:      baseAddr - 1,
 		totalSize:    0,
 		blockRegions: []BlockRegionInfo{},
 	}
@@ -29,13 +29,13 @@ func (b *Blockman) AddRegion(blockSize int64, blockCount int) error {
 	var regionSize int64 = blockSize * int64(blockCount)
 	blockRegion := BlockRegionInfo{
 		baseAddr:   b.baseAddr,
-		endAddr:    b.baseAddr + regionSize,
+		endAddr:    b.baseAddr + regionSize - 1,
 		blockSize:  blockSize,
 		blockCount: blockCount,
 	}
 	b.blockRegions = append(b.blockRegions, blockRegion)
 	b.endAddr += int64(regionSize)
-
+	b.totalSize += int64(regionSize)
 	return nil
 }
 
