@@ -23,10 +23,6 @@ func shortDelay() {
 	time.Sleep(100 * time.Millisecond)
 }
 
-func longDelay() {
-	time.Sleep(500 * time.Millisecond)
-}
-
 // LoadBoot initializes PMB serial communication and sends the bootloader.
 func (pmb *Device) LoadBoot(bootcode []byte) error {
 	log.Println("Initializing connection")
