@@ -83,7 +83,44 @@ func main() {
 		fmt.Printf("Cannot read information from Chaos boot: %v", err)
 		os.Exit(1)
 	}
-
 	fmt.Printf("Phone information:\n%s\n", info)
+
+	ff, err := os.Create("ff.bin")
+	if err != nil {
+		fmt.Printf("Cannot create fullflash file: %v", err)
+		os.Exit(1)
+	}
+	defer ff.Close()
+	bm := info.BlockMap
+	stillNeedToRead := bm.TotalSize()
+	readSize := 65536 // 64K
+	errCount := 0
+	baseAddr := bm.BaseAddr()
+	for stillNeedToRead > 0 {
+		buf := make([]byte, readSize)
+		retries := 3
+		for ; retries > 0; retries-- {
+			if err := chaos.ReadFlash(int64(baseAddr), buf); err != nil {
+				fmt.Printf("Error reading flash @ %08X: %v. Retries left: %d\n", baseAddr, err, retries)
+				errCount++
+				continue
+			}
+			break
+		}
+		if retries == 0 {
+			fmt.Printf("Cannot read block @ %08X after retries!\n", baseAddr)
+			os.Exit(1)
+		}
+
+		n, err := ff.Write(buf)
+		if n != len(buf) {
+			fmt.Printf("Cannot write block @ %08X to the fullflash file: %v\n", baseAddr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Transfered %d bytes from addr %X...\n", readSize, baseAddr)
+		baseAddr += int64(readSize)
+	}
+	fmt.Printf("Ready! Transfered %d bytes, error count: %d...\n", bm.TotalSize()/1024/1024, errCount)
 	dev.Disconnect()
+	fmt.Println()
 }
