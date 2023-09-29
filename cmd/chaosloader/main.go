@@ -78,10 +78,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = chaos.ReadInfo(); err != nil {
+	var info pmb887x.ChaosPhoneInfo
+	if info, err = chaos.ReadInfo(); err != nil {
 		fmt.Printf("Cannot read information from Chaos boot: %v", err)
 		os.Exit(1)
 	}
 
+	fmt.Printf("Phone information:\n%s\n", info)
 	dev.Disconnect()
 }

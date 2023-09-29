@@ -1,8 +1,8 @@
 package pmb887x
 
 import (
+	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -134,25 +134,23 @@ func (cl *ChaosLoader) Ping() (bool, error) {
 }
 
 // ReadInfo sends "Get info" command to the bootloader and dumps the result.
-// TODO: parse the result into ChaosPhoneInfo and return it.
-func (cl *ChaosLoader) ReadInfo() error {
-	fmt.Println("Requesting information")
+func (cl *ChaosLoader) ReadInfo() (ChaosPhoneInfo, error) {
 	shortDelay()
 	if _, err := cl.pmb.iostream.Write([]byte{'I'}); err != nil {
-		return err
+		return ChaosPhoneInfo{}, err
 	}
 	shortDelay()
 	reply := make([]byte, 128)
 	var n int
 	var err error
 	if n, err = cl.pmb.iostream.Read(reply); err != nil {
-		return err
+		return ChaosPhoneInfo{}, err
 	}
-	fmt.Printf("len=%d bytes:\n%s\n", n, hex.Dump(reply[0:n]))
 	if n < 128 {
-		return fmt.Errorf("less than 128 bytes read: %d", n)
+		return ChaosPhoneInfo{}, fmt.Errorf("less than 128 bytes read: %d", n)
 	}
-	return nil
+
+	return ParseChaosInfo(bytes.NewBuffer(reply))
 }
 
 // ParseChaosInfo parses an info dump saved in a file into a structure.
