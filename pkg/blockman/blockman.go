@@ -25,6 +25,22 @@ func New(baseAddr int64) Blockman {
 	}
 }
 
+func (b *Blockman) TotalSize() int64 {
+	return b.totalSize
+}
+
+func (b *Blockman) BaseAddr() int64 {
+	return b.baseAddr
+}
+
+func (b *Blockman) EndAddr() int64 {
+	return b.endAddr
+}
+
+func (b *Blockman) NumOfRegions() int {
+	return len(b.blockRegions)
+}
+
 func (b *Blockman) AddRegion(blockSize int64, blockCount int) error {
 	var regionSize int64 = blockSize * int64(blockCount)
 	blockRegion := BlockRegionInfo{
