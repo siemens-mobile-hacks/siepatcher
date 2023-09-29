@@ -29,7 +29,6 @@ func TestParseChaosInfo(t *testing.T) {
 
 	for _, tc := range testCases {
 		byteData, err := hex.DecodeString(tc.chaosReply)
-		//log.Printf("%s\n", hex.Dump(byteData))
 		if err != nil {
 			t.Fatalf("Test %q: Cannot prepare data for Chaos reply: %v", tc.descr, err)
 		}
@@ -37,11 +36,11 @@ func TestParseChaosInfo(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Test %q: Cannot parse Chaos reply: %v", tc.descr, err)
 		}
-		if info.bm.TotalSize() != tc.wantFlashSize {
-			t.Fatalf("Test %q: Unexpected flash size: got %d, want %d.\nBlockmap: %s", tc.descr, info.bm.TotalSize(), tc.wantFlashSize, info.bm)
+		if info.BlockMap.TotalSize() != tc.wantFlashSize {
+			t.Fatalf("Test %q: Unexpected flash size: got %d, want %d.\nBlockmap: %s", tc.descr, info.BlockMap.TotalSize(), tc.wantFlashSize, info.BlockMap)
 		}
-		if info.bm.NumOfRegions() != tc.wantFlashRegions {
-			t.Fatalf("Test %q: Unexpected number of regions: got %d, want %d.\nBlockmap: %s", tc.descr, info.bm.NumOfRegions(), tc.wantFlashRegions, info.bm)
+		if info.BlockMap.NumOfRegions() != tc.wantFlashRegions {
+			t.Fatalf("Test %q: Unexpected number of regions: got %d, want %d.\nBlockmap: %s", tc.descr, info.BlockMap.NumOfRegions(), tc.wantFlashRegions, info.BlockMap)
 		}
 	}
 }

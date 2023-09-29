@@ -57,12 +57,12 @@ type ChaosPhoneInfo struct {
 	ModelName    string
 	Manufacturer string
 	IMEI         string
-	bm           blockman.Blockman
+	BlockMap     blockman.Blockman
 }
 
 // String implements fmt.Stringer.
 func (i ChaosPhoneInfo) String() string {
-	return fmt.Sprintf("Model %s by %s, IMEI %s\nFlash map:\n%s", i.ModelName, i.Manufacturer, i.IMEI, i.bm)
+	return fmt.Sprintf("Model %s by %s, IMEI %s\nFlash map:\n%s", i.ModelName, i.Manufacturer, i.IMEI, i.BlockMap)
 }
 
 // chaosInfo describes the on-the-wire format of reply to "info" command.
@@ -87,8 +87,16 @@ type chaosInfo struct {
 	FlashRegion3BlockSizeDiv256 uint16
 }
 
+// readCmd is a on-wire format of Read Flash command.
+type readCmd struct {
+	Cmd  byte
+	Addr uint32
+	Size uint32
+}
+
 type ChaosLoader struct {
 	pmb Device
+	bm  *blockman.Blockman
 }
 
 func ChaosControllerForDevice(dev Device) ChaosLoader {
@@ -150,7 +158,89 @@ func (cl *ChaosLoader) ReadInfo() (ChaosPhoneInfo, error) {
 		return ChaosPhoneInfo{}, fmt.Errorf("less than 128 bytes read: %d", n)
 	}
 
-	return ParseChaosInfo(bytes.NewBuffer(reply))
+	info, err := ParseChaosInfo(bytes.NewBuffer(reply))
+	if err != nil {
+		return ChaosPhoneInfo{}, err
+	}
+	bm := info.BlockMap
+	cl.bm = &bm
+	return info, nil
+}
+
+func (cl *ChaosLoader) readAndCheck(maxN int) ([]byte, error) {
+	// This is max what we could ever read, but the actual read amount will likely
+	// be smaller.
+	replyBuf := make([]byte, maxN)
+	var n int
+	var err error
+	if n, err = cl.pmb.iostream.Read(replyBuf); err != nil {
+		return nil, fmt.Errorf("cannot read flash: %v", err)
+	}
+	return replyBuf[:n], nil
+}
+
+// ReadFlash reads a memory region from Flash.
+func (cl *ChaosLoader) ReadFlash(baseAddr int64, buf []byte) error {
+	if cl.bm == nil {
+		if _, err := cl.ReadInfo(); err != nil {
+			return err
+		}
+	}
+
+	reqLen := len(buf)
+
+	// Construct the READ command.
+	cmd := readCmd{
+		Cmd:  'R',
+		Addr: uint32(baseAddr),
+		Size: uint32(reqLen),
+	}
+
+	cmdBuf := new(bytes.Buffer)
+	if err := binary.Write(cmdBuf, binary.BigEndian, cmd); err != nil {
+		fmt.Println("binary.Write failed:", err)
+	}
+
+	shortDelay()
+	if _, err := cl.pmb.iostream.Write(cmdBuf.Bytes()); err != nil {
+		return err
+	}
+	shortDelay()
+
+	// We need the total length + 4 bytes control data.
+	stillNeedToRead := reqLen + 4
+	inBuffer := make([]byte, 0, stillNeedToRead)
+	for stillNeedToRead > 0 {
+		gotData, err := cl.readAndCheck(stillNeedToRead)
+		if err != nil {
+			return err
+		}
+		inBuffer = append(inBuffer, gotData...)
+		stillNeedToRead -= len(gotData)
+	}
+	if len(inBuffer) != reqLen+4 {
+		return fmt.Errorf("wrong lengh of received data (got %d, want %d)", len(inBuffer), len(buf)+4)
+	}
+
+	// Verify that the control data contains OK and that the checksum is correct.
+	n := len(inBuffer)
+	okSign := inBuffer[n-4 : n-2]
+	if !bytes.Equal(okSign, []byte{'O', 'K'}) {
+		return fmt.Errorf("didn't successfully receive the block, ok=%v", okSign)
+	}
+	chkBytes := inBuffer[n-2 : n]
+	wantChk := chkBytes[0] // This should be just one byte, because the wanted CHK is a byte-wise XOR.
+	gotChk := byte(0)
+	for i := 0; i < n-4; i++ {
+		gotChk ^= inBuffer[i]
+	}
+	if gotChk != wantChk {
+		return fmt.Errorf("checksum doesn't match: got %X, want %X", gotChk, wantChk)
+	}
+
+	// copy() copies only so much data that the dest buffer can accomodate.
+	copy(buf, inBuffer)
+	return nil
 }
 
 // ParseChaosInfo parses an info dump saved in a file into a structure.
@@ -169,18 +259,18 @@ func ParseChaosInfo(r io.Reader) (ChaosPhoneInfo, error) {
 		IMEI:         string(info.IMEI[:]),
 	}
 
-	phoneInfo.bm = blockman.New(int64(info.FlashBaseAddr))
+	phoneInfo.BlockMap = blockman.New(int64(info.FlashBaseAddr))
 	if info.FlashRegionsNum >= 1 {
-		phoneInfo.bm.AddRegion(int64(info.FlashRegion0BlockSizeDiv256)*256, int(info.FlashRegion0BlocksNumMinus1)+1)
+		phoneInfo.BlockMap.AddRegion(int64(info.FlashRegion0BlockSizeDiv256)*256, int(info.FlashRegion0BlocksNumMinus1)+1)
 	}
 	if info.FlashRegionsNum >= 2 {
-		phoneInfo.bm.AddRegion(int64(info.FlashRegion1BlockSizeDiv256)*256, int(info.FlashRegion1BlocksNumMinus1)+1)
+		phoneInfo.BlockMap.AddRegion(int64(info.FlashRegion1BlockSizeDiv256)*256, int(info.FlashRegion1BlocksNumMinus1)+1)
 	}
 	if info.FlashRegionsNum >= 3 {
-		phoneInfo.bm.AddRegion(int64(info.FlashRegion2BlockSizeDiv256)*256, int(info.FlashRegion2BlocksNumMinus1)+1)
+		phoneInfo.BlockMap.AddRegion(int64(info.FlashRegion2BlockSizeDiv256)*256, int(info.FlashRegion2BlocksNumMinus1)+1)
 	}
 	if info.FlashRegionsNum >= 4 {
-		phoneInfo.bm.AddRegion(int64(info.FlashRegion3BlockSizeDiv256)*256, int(info.FlashRegion3BlocksNumMinus1)+1)
+		phoneInfo.BlockMap.AddRegion(int64(info.FlashRegion3BlockSizeDiv256)*256, int(info.FlashRegion3BlocksNumMinus1)+1)
 	}
 	if info.FlashRegionsNum > 4 {
 		return ChaosPhoneInfo{}, fmt.Errorf("unsupported number of regions: %d", info.FlashRegionsNum)
