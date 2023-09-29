@@ -24,7 +24,17 @@ func main() {
 	flag.Parse()
 
 	if *chaosInfoFile != "" {
-		info := pmb887x.ParseChaosInfo(*chaosInfoFile)
+		f, err := os.Open(*chaosInfoFile)
+		if err != nil {
+			fmt.Printf("Cannot open info file: %v\n", err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		info, err := pmb887x.ParseChaosInfo(f)
+		if err != nil {
+			fmt.Printf("Cannot parse information block: %v\n", err)
+			os.Exit(1)
+		}
 		fmt.Println(info)
 		os.Exit(0)
 	}
