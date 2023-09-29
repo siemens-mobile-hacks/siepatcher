@@ -44,8 +44,8 @@ func (b *Blockman) NumOfRegions() int {
 func (b *Blockman) AddRegion(blockSize int64, blockCount int) error {
 	var regionSize int64 = blockSize * int64(blockCount)
 	blockRegion := BlockRegionInfo{
-		baseAddr:   b.baseAddr,
-		endAddr:    b.baseAddr + regionSize - 1,
+		baseAddr:   b.endAddr + 1,
+		endAddr:    b.endAddr + 1 + regionSize - 1,
 		blockSize:  blockSize,
 		blockCount: blockCount,
 	}

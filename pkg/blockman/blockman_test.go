@@ -1,6 +1,8 @@
 package blockman
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestParamsForAddr(t *testing.T) {
 	testCases := []struct {
@@ -15,21 +17,21 @@ func TestParamsForAddr(t *testing.T) {
 			addr:      0xA0001000,
 			wantError: false,
 			blockAddr: 0xA0000000,
-			blockSize: 0x1000000,
+			blockSize: 0x20000,
 		},
 		{
 			desc:      "Normal address within flash #2",
-			addr:      0xA1000000,
+			addr:      0xA0020001,
 			wantError: false,
-			blockAddr: 0xA1000000,
-			blockSize: 0x1000000,
+			blockAddr: 0xA0020000,
+			blockSize: 0x20000,
 		},
 		{
-			desc:      "Normal address within flash #3",
-			addr:      0xA1000000 - 1,
+			desc:      "Normal address within flash, in the second region",
+			addr:      0xA1FE0001,
 			wantError: false,
-			blockAddr: 0xA0000000,
-			blockSize: 0x1000000,
+			blockAddr: 0xA1FE0000,
+			blockSize: 0x8000,
 		},
 		{
 			desc:      "Address not in flash",
@@ -38,9 +40,21 @@ func TestParamsForAddr(t *testing.T) {
 		},
 	}
 
+	/*
+		From the real C81:
+		BM: Total size: 64 MB
+		4 regions, start addr 0xA0000000, end addr 0xA3FFFFFF
+			Region #0: [A0000000, A1FDFFFF] 255 blocks, size of each 0x20000
+			Region #1: [A1FE0000, A001FFFF] 4 blocks, size of each 0x8000
+			Region #2: [A2000000, A001FFFF] 4 blocks, size of each 0x8000
+			Region #3: [A2020000, A1FDFFFF] 255 blocks, size of each 0x20000
+	*/
+
 	bm := New(0xA0000000)
-	bm.AddRegion(0x1000000, 8)
-	bm.AddRegion(0x0800000, 16)
+	bm.AddRegion(0x20000, 255)
+	bm.AddRegion(0x8000, 4)
+	bm.AddRegion(0x8000, 4)
+	bm.AddRegion(0x20000, 255)
 
 	for _, tc := range testCases {
 		blockAddr, blockSize, err := bm.ParamsForAddr(tc.addr)
