@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"log"
-	"os"
 
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/blockman"
 )
@@ -83,6 +83,8 @@ type chaosInfo struct {
 	FlashRegion1BlockSizeDiv256 uint16
 	FlashRegion2BlocksNumMinus1 uint16
 	FlashRegion2BlockSizeDiv256 uint16
+	FlashRegion3BlocksNumMinus1 uint16
+	FlashRegion3BlockSizeDiv256 uint16
 }
 
 type ChaosLoader struct {
@@ -155,16 +157,12 @@ func (cl *ChaosLoader) ReadInfo() error {
 
 // ParseChaosInfo parses an info dump saved in a file into a structure.
 // TODO: Accept an io.Reader, not a path to file; return error as the second return value.
-func ParseChaosInfo(filePath string) ChaosPhoneInfo {
-	f, err := os.Open(filePath)
-	if err != nil {
-		panic("Cannot read file")
-	}
+func ParseChaosInfo(r io.Reader) (ChaosPhoneInfo, error) {
 
 	var info chaosInfo
-	if err := binary.Read(f, binary.LittleEndian, &info); err != nil {
+	if err := binary.Read(r, binary.LittleEndian, &info); err != nil {
 		fmt.Println("failed to Read:", err)
-		return ChaosPhoneInfo{}
+		return ChaosPhoneInfo{}, err
 	}
 
 	phoneInfo := ChaosPhoneInfo{
@@ -183,6 +181,12 @@ func ParseChaosInfo(filePath string) ChaosPhoneInfo {
 	if info.FlashRegionsNum >= 3 {
 		phoneInfo.bm.AddRegion(int64(info.FlashRegion2BlockSizeDiv256)*256, int(info.FlashRegion2BlocksNumMinus1)+1)
 	}
+	if info.FlashRegionsNum >= 4 {
+		phoneInfo.bm.AddRegion(int64(info.FlashRegion3BlockSizeDiv256)*256, int(info.FlashRegion3BlocksNumMinus1)+1)
+	}
+	if info.FlashRegionsNum > 4 {
+		return ChaosPhoneInfo{}, fmt.Errorf("unsupported number of regions: %d", info.FlashRegionsNum)
+	}
 
-	return phoneInfo
+	return phoneInfo, nil
 }
