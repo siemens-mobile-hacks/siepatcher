@@ -92,35 +92,40 @@ func main() {
 	}
 	defer ff.Close()
 	bm := info.BlockMap
+	maxRetries := 3
 	stillNeedToRead := bm.TotalSize()
 	readSize := 65536 // 64K
 	errCount := 0
 	baseAddr := bm.BaseAddr()
+	totalRead := int64(0)
 	for stillNeedToRead > 0 {
 		buf := make([]byte, readSize)
-		retries := 3
+		retries := maxRetries
 		for ; retries > 0; retries-- {
+			fmt.Printf("[Retry %d] Transfering %d bytes from addr %X...", maxRetries-retries, readSize, baseAddr)
 			if err := chaos.ReadFlash(int64(baseAddr), buf); err != nil {
-				fmt.Printf("Error reading flash @ %08X: %v. Retries left: %d\n", baseAddr, err, retries)
+				fmt.Printf("\n\tError reading flash @ %08X: %v. Retries left: %d\n", baseAddr, err, retries)
 				errCount++
 				continue
 			}
 			break
 		}
 		if retries == 0 {
-			fmt.Printf("Cannot read block @ %08X after retries!\n", baseAddr)
+			fmt.Printf("\n\tCannot read block @ %08X after retries!\n", baseAddr)
 			os.Exit(1)
 		}
 
 		n, err := ff.Write(buf)
 		if n != len(buf) {
-			fmt.Printf("Cannot write block @ %08X to the fullflash file: %v\n", baseAddr, err)
+			fmt.Printf("\n\tCannot write block @ %08X to the fullflash file: %v\n", baseAddr, err)
 			os.Exit(1)
 		}
-		fmt.Printf("Transfered %d bytes from addr %X...\n", readSize, baseAddr)
+		fmt.Println("ok")
 		baseAddr += int64(readSize)
+		stillNeedToRead -= int64(readSize)
+		totalRead += int64(readSize)
 	}
-	fmt.Printf("Ready! Transfered %d bytes, error count: %d...\n", bm.TotalSize()/1024/1024, errCount)
+	fmt.Printf("Ready! Transfered %d MB, error count: %d...\n", totalRead, errCount)
 	dev.Disconnect()
 	fmt.Println()
 }
