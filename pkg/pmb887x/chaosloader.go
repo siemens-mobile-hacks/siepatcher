@@ -247,6 +247,23 @@ func (cl *ChaosLoader) ReadFlash(baseAddr int64, buf []byte) error {
 	return nil
 }
 
+// writeWithChecksum writes exactly one block to flash at baseAddr.
+func (cl *ChaosLoader) writeWithChecksum(baseAddr int64, buf []byte) error {
+	writeLen := int64(len(buf))
+	fmt.Printf("writeWithChecksum(0x%08X, <buffer len %08X>): not implemented\n", baseAddr, writeLen)
+
+	blockAddr, eraseSize, err := cl.bm.ParamsForAddr(baseAddr)
+	if err != nil {
+		return err
+	}
+	if blockAddr != baseAddr || writeLen != eraseSize {
+		return fmt.Errorf("requested block (0x%08X len %d) doesn't align on erase region boundary (0x%08X len %d)",
+			baseAddr, writeLen, blockAddr, eraseSize)
+	}
+
+	return nil
+}
+
 // WriteFlash writes a memory region from Flash.
 // both baseAddr and the end address should be aligned on block boundary.
 func (cl *ChaosLoader) WriteFlash(baseAddr int64, buf []byte) error {
@@ -258,9 +275,27 @@ func (cl *ChaosLoader) WriteFlash(baseAddr int64, buf []byte) error {
 
 	writeLen := int64(len(buf))
 	if err := validateBlockToWrite(cl.bm, baseAddr, writeLen); err != nil {
-		return err
+		return fmt.Errorf("cannot validate writing to 0x%08X len 0x%08X: %v", baseAddr, writeLen, err)
 	}
 
+	// So now we have a block of data that aligns perfectly on the block
+	// boundaries, but potentially spans multiple blocks.
+	// We will write each block separately.
+	stillNeedToWrite := int64(len(buf))
+	writeAddr := baseAddr
+	for stillNeedToWrite > 0 {
+		blockAddr, eraseSize, err := cl.bm.ParamsForAddr(writeAddr)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Writing 0x%X bytes @ 0x%08X\n", eraseSize, blockAddr)
+		writeBuf := buf[writeAddr-cl.bm.BaseAddr() : writeAddr-cl.bm.BaseAddr()+eraseSize]
+		if err := cl.writeWithChecksum(blockAddr, writeBuf); err != nil {
+			return err
+		}
+		writeAddr += eraseSize
+		stillNeedToWrite -= eraseSize
+	}
 	return nil
 }
 

@@ -15,6 +15,7 @@ var (
 	chaosLoader   = flag.String("loader", "", "Path to Chaos bootloader (.bin file).")
 	chaosInfoFile = flag.String("chaos_info_file", "", "Path to a dumped Chaos info block. Parse and exit.")
 	readFlash     = flag.Bool("read_flash", false, "Read flash to file.")
+	writeFlash    = flag.Bool("write_flash", false, "Write flash from file.")
 	flashFile     = flag.String("flash_file", "", "Path to a flash file to read from / store to.")
 	flashBaseAddr = flag.Int64("base_addr", 0, "Base address to read from / write to.")
 	flashLength   = flag.Int64("length", 0, "Length to read / to write.")
@@ -96,6 +97,17 @@ func main() {
 		}
 		if err := readFlashToFile(chaos, *flashBaseAddr, *flashLength, *flashFile); err != nil {
 			fmt.Printf("Cannot read flash from 0x%X len 0x%0X: %v", *flashBaseAddr, *flashLength, err)
+			os.Exit(1)
+		}
+	}
+
+	if *writeFlash {
+		if *flashBaseAddr == 0 || *flashLength == 0 || *flashFile == "" {
+			fmt.Println("-base_addr, -length and -flash_file must be set!")
+			os.Exit(1)
+		}
+		if err := writeFlashFromFile(chaos, *flashBaseAddr, *flashLength, *flashFile); err != nil {
+			fmt.Printf("Cannot write flash to 0x%X len 0x%0X: %v", *flashBaseAddr, *flashLength, err)
 			os.Exit(1)
 		}
 	}
