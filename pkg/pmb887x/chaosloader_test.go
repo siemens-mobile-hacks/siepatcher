@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"testing"
+
+	"github.com/siemens-mobile-hacks/siepatcher/pkg/blockman"
 )
 
 func TestParseChaosInfo(t *testing.T) {
@@ -41,6 +43,69 @@ func TestParseChaosInfo(t *testing.T) {
 		}
 		if info.BlockMap.NumOfRegions() != tc.wantFlashRegions {
 			t.Fatalf("Test %q: Unexpected number of regions: got %d, want %d.\nBlockmap: %s", tc.descr, info.BlockMap.NumOfRegions(), tc.wantFlashRegions, info.BlockMap)
+		}
+	}
+}
+
+func TestValidateBlockForWrite(t *testing.T) {
+	testCases := []struct {
+		descr     string
+		baseAddr  int64
+		blockLen  int64
+		wantError bool
+	}{
+		{
+			descr:     "A normally aligned block",
+			baseAddr:  0xA0000000,
+			blockLen:  0x20000,
+			wantError: false,
+		},
+		{
+			descr:     "A normally aligned block #2",
+			baseAddr:  0xA0020000,
+			blockLen:  0x20000,
+			wantError: false,
+		},
+		{
+			descr:     "A normally aligned block spanning exactly two erase regions",
+			baseAddr:  0xA0000000,
+			blockLen:  0x20000 * 2,
+			wantError: false,
+		},
+
+		{
+			descr:     "A normally aligned block in the third erase region",
+			baseAddr:  0xA2008000,
+			blockLen:  0x8000,
+			wantError: false,
+		},
+		{
+			descr:     "A normal aligned block but shorter than one erase region",
+			baseAddr:  0xA0000000,
+			blockLen:  0x10000,
+			wantError: true,
+		},
+		{
+			descr:     "A normal aligned block but doesn't fit in one erase region",
+			baseAddr:  0xA0000000,
+			blockLen:  0x22000,
+			wantError: true,
+		},
+		{
+			descr:     "A misaligned block",
+			baseAddr:  0xA0001000,
+			blockLen:  0x20000,
+			wantError: true,
+		},
+	}
+
+	// Create a blockmap with several erase regions (based on a real phone).
+	bm := blockman.BlockmapForC81()
+
+	for _, tc := range testCases {
+		err := validateBlockToWrite(&bm, tc.baseAddr, tc.blockLen)
+		if (err != nil) != tc.wantError {
+			t.Errorf("Test %q: got error = %t, want error = %t, err = %v", tc.descr, (err != nil), tc.wantError, err)
 		}
 	}
 }

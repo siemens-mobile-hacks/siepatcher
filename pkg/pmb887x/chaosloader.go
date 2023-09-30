@@ -243,6 +243,50 @@ func (cl *ChaosLoader) ReadFlash(baseAddr int64, buf []byte) error {
 	return nil
 }
 
+// WriteFlash writes a memory region from Flash.
+// both baseAddr and the end address should be aligned on block boundary.
+func (cl *ChaosLoader) WriteFlash(baseAddr int64, buf []byte) error {
+	if cl.bm == nil {
+		if _, err := cl.ReadInfo(); err != nil {
+			return err
+		}
+	}
+
+	writeLen := int64(len(buf))
+	if err := validateBlockToWrite(cl.bm, baseAddr, writeLen); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateBlockToWrite validates if a block starting at baseAddr with size blockLen
+// would align with the erase regions in the flash described by bm.
+func validateBlockToWrite(bm *blockman.Blockman, baseAddr, blockLen int64) error {
+	blockAddr, _, err := bm.ParamsForAddr(baseAddr)
+	if err != nil {
+		return err
+	}
+	if blockAddr != baseAddr {
+		return fmt.Errorf("address 0x%X is not aligned on the block boundary", baseAddr)
+	}
+
+	lastAddr := baseAddr + blockLen - 1
+	blockAddrForLastAddr, _, err := bm.ParamsForAddr(lastAddr)
+	if err != nil {
+		return err
+	}
+	blockAddrForLastAddrPlus1, _, err := bm.ParamsForAddr(lastAddr + 1)
+	if err != nil {
+		return err
+	}
+
+	if blockAddrForLastAddr == blockAddrForLastAddrPlus1 {
+		return fmt.Errorf("end address is not aligned on the block boundary")
+	}
+	return nil
+}
+
 // ParseChaosInfo parses an info dump saved in a file into a structure.
 // TODO: Accept an io.Reader, not a path to file; return error as the second return value.
 func ParseChaosInfo(r io.Reader) (ChaosPhoneInfo, error) {
