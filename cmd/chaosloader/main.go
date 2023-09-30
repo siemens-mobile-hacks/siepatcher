@@ -14,6 +14,10 @@ var (
 	serialPort    = flag.String("serial", "", "Serial port path (like /dev/cu.usbserial-110, or COM2).")
 	chaosLoader   = flag.String("loader", "", "Path to Chaos bootloader (.bin file).")
 	chaosInfoFile = flag.String("chaos_info_file", "", "Path to a dumped Chaos info block. Parse and exit.")
+	readFlash     = flag.Bool("read_flash", false, "Read flash to file.")
+	flashFile     = flag.String("flash_file", "", "Path to a flash file to read from / store to.")
+	flashBaseAddr = flag.Int64("base_addr", 0, "Base address to read from / write to.")
+	flashLength   = flag.Int64("length", 0, "Length to read / to write.")
 )
 
 func main() {
@@ -85,47 +89,16 @@ func main() {
 	}
 	fmt.Printf("Phone information:\n%s\n", info)
 
-	ff, err := os.Create("ff.bin")
-	if err != nil {
-		fmt.Printf("Cannot create fullflash file: %v", err)
-		os.Exit(1)
-	}
-	defer ff.Close()
-	bm := info.BlockMap
-	maxRetries := 3
-	stillNeedToRead := bm.TotalSize()
-	readSize := 65536 // 64K
-	errCount := 0
-	baseAddr := bm.BaseAddr()
-	totalRead := int64(0)
-	for stillNeedToRead > 0 {
-		buf := make([]byte, readSize)
-		retries := maxRetries
-		for ; retries > 0; retries-- {
-			fmt.Printf("[Retry %d] Transfering %d bytes from addr %X...", maxRetries-retries, readSize, baseAddr)
-			if err := chaos.ReadFlash(int64(baseAddr), buf); err != nil {
-				fmt.Printf("\n\tError reading flash @ %08X: %v. Retries left: %d\n", baseAddr, err, retries)
-				errCount++
-				continue
-			}
-			break
-		}
-		if retries == 0 {
-			fmt.Printf("\n\tCannot read block @ %08X after retries!\n", baseAddr)
+	if *readFlash {
+		if *flashBaseAddr == 0 || *flashLength == 0 || *flashFile == "" {
+			fmt.Println("-base_addr, -length and -flash_file must be set!")
 			os.Exit(1)
 		}
-
-		n, err := ff.Write(buf)
-		if n != len(buf) {
-			fmt.Printf("\n\tCannot write block @ %08X to the fullflash file: %v\n", baseAddr, err)
+		if err := readFlashToFile(chaos, *flashBaseAddr, *flashLength, *flashFile); err != nil {
+			fmt.Printf("Cannot read flash from 0x%X len 0x%0X: %v", *flashBaseAddr, *flashLength, err)
 			os.Exit(1)
 		}
-		fmt.Println("ok")
-		baseAddr += int64(readSize)
-		stillNeedToRead -= int64(readSize)
-		totalRead += int64(readSize)
 	}
-	fmt.Printf("Ready! Transfered %d MB, error count: %d...\n", totalRead, errCount)
 	dev.Disconnect()
 	fmt.Println()
 }
