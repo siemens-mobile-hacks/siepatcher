@@ -85,6 +85,10 @@ type chaosInfo struct {
 	FlashRegion2BlockSizeDiv256 uint16
 	FlashRegion3BlocksNumMinus1 uint16
 	FlashRegion3BlockSizeDiv256 uint16
+	FlashRegion4BlocksNumMinus1 uint16
+	FlashRegion4BlockSizeDiv256 uint16
+	FlashRegion5BlocksNumMinus1 uint16
+	FlashRegion5BlockSizeDiv256 uint16
 }
 
 // readCmd is a on-wire format of Read Flash command.
@@ -316,7 +320,13 @@ func ParseChaosInfo(r io.Reader) (ChaosPhoneInfo, error) {
 	if info.FlashRegionsNum >= 4 {
 		phoneInfo.BlockMap.AddRegion(int64(info.FlashRegion3BlockSizeDiv256)*256, int(info.FlashRegion3BlocksNumMinus1)+1)
 	}
-	if info.FlashRegionsNum > 4 {
+	if info.FlashRegionsNum >= 5 {
+		phoneInfo.BlockMap.AddRegion(int64(info.FlashRegion4BlockSizeDiv256)*256, int(info.FlashRegion4BlocksNumMinus1)+1)
+	}
+	if info.FlashRegionsNum >= 6 {
+		phoneInfo.BlockMap.AddRegion(int64(info.FlashRegion5BlockSizeDiv256)*256, int(info.FlashRegion5BlocksNumMinus1)+1)
+	}
+	if info.FlashRegionsNum > 6 {
 		return ChaosPhoneInfo{}, fmt.Errorf("unsupported number of regions: %d", info.FlashRegionsNum)
 	}
 
