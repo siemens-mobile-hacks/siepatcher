@@ -91,8 +91,8 @@ type chaosInfo struct {
 	FlashRegion5BlockSizeDiv256 uint16
 }
 
-// readCmd is a on-wire format of Read Flash command.
-type readCmd struct {
+// readWriteCmd is a on-wire format of Read Flash  / Write Flash command.
+type readWriteCmd struct {
 	Cmd  byte
 	Addr uint32
 	Size uint32
@@ -194,7 +194,7 @@ func (cl *ChaosLoader) ReadFlash(baseAddr int64, buf []byte) error {
 	reqLen := len(buf)
 
 	// Construct the READ command.
-	cmd := readCmd{
+	cmd := readWriteCmd{
 		Cmd:  'R',
 		Addr: uint32(baseAddr),
 		Size: uint32(reqLen),
@@ -250,7 +250,8 @@ func (cl *ChaosLoader) ReadFlash(baseAddr int64, buf []byte) error {
 // writeWithChecksum writes exactly one block to flash at baseAddr.
 func (cl *ChaosLoader) writeWithChecksum(baseAddr int64, buf []byte) error {
 	writeLen := int64(len(buf))
-	fmt.Printf("writeWithChecksum(0x%08X, <buffer len %08X>): not implemented\n", baseAddr, writeLen)
+	var n int
+	fmt.Printf("writeWithChecksum(0x%08X, <buffer len %08X>): starting\n", baseAddr, writeLen)
 
 	blockAddr, eraseSize, err := cl.bm.ParamsForAddr(baseAddr)
 	if err != nil {
@@ -261,10 +262,69 @@ func (cl *ChaosLoader) writeWithChecksum(baseAddr int64, buf []byte) error {
 			baseAddr, writeLen, blockAddr, eraseSize)
 	}
 
+	// Let the fun begin!
+	// Construct the READ command.
+	cmd := readWriteCmd{
+		Cmd:  'F',
+		Addr: uint32(baseAddr),
+		Size: uint32(writeLen),
+	}
+
+	chk := byte(0)
+	for i := 0; i < int(writeLen); i++ {
+		chk ^= buf[i]
+	}
+
+	cmdBuf := new(bytes.Buffer)
+	if err := binary.Write(cmdBuf, binary.BigEndian, cmd); err != nil {
+		fmt.Println("binary.Write failed:", err)
+	}
+	// Construct packet for the wire.
+	writeBuf := make([]byte, 0)
+
+	writeBuf = append(writeBuf, cmdBuf.Bytes()...)
+	writeBuf = append(writeBuf, buf...)
+	writeBuf = append(writeBuf, chk)
+
+	fmt.Printf("About to send %d bytes on the wire\n", len(writeBuf))
+	if n, err = cl.pmb.iostream.Write(writeBuf); err != nil {
+		return fmt.Errorf("cannot send write flash command: %v", err)
+	}
+	if n < len(writeBuf) {
+		return fmt.Errorf("short write: %d < %d", n, len(writeBuf))
+	}
+	fmt.Println("Command sent, processing reply...")
+
+	shortDelay()
+	reply := make([]byte, 2)
+	// Wait for "Block sent".
+	if _, err = io.ReadAtLeast(cl.pmb.iostream, reply, 2); err != nil {
+		return fmt.Errorf("cannot read first reply to Write Flash command: %v", err)
+	}
+	if !(reply[0] == 0x01 && reply[1] == 0x01) {
+		return fmt.Errorf("unexpected result of sending block: %v", reply)
+	}
+	fmt.Println(" - Block sent!")
+	// Wait for "block erased".
+	if _, err = io.ReadAtLeast(cl.pmb.iostream, reply, 2); err != nil {
+		return fmt.Errorf("cannot read second reply to Write Flash command: %v", err)
+	}
+	if !(reply[0] == 0x02 && reply[1] == 0x02) {
+		return fmt.Errorf("unexpected result of erasing block: %v", reply)
+	}
+	fmt.Println(" - Block erased!")
+	// Wait for "block written".
+	if _, err = io.ReadAtLeast(cl.pmb.iostream, reply, 2); err != nil {
+		return fmt.Errorf("cannot read third reply to Write Flash command: %v", err)
+	}
+	if !(reply[0] == 0x03 && reply[1] == 0x03) {
+		return fmt.Errorf("unexpected result of writing block: %v", reply)
+	}
+	fmt.Println(" - Block written!")
 	return nil
 }
 
-// WriteFlash writes a memory region from Flash.
+// WriteFlash writes a memory region to Flash.
 // both baseAddr and the end address should be aligned on block boundary.
 func (cl *ChaosLoader) WriteFlash(baseAddr int64, buf []byte) error {
 	if cl.bm == nil {
@@ -282,18 +342,20 @@ func (cl *ChaosLoader) WriteFlash(baseAddr int64, buf []byte) error {
 	// boundaries, but potentially spans multiple blocks.
 	// We will write each block separately.
 	stillNeedToWrite := int64(len(buf))
-	writeAddr := baseAddr
+	writeFromAddr := int64(0)
+	writeToAddr := baseAddr
 	for stillNeedToWrite > 0 {
-		blockAddr, eraseSize, err := cl.bm.ParamsForAddr(writeAddr)
+		blockAddr, eraseSize, err := cl.bm.ParamsForAddr(writeToAddr)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Writing 0x%X bytes @ 0x%08X\n", eraseSize, blockAddr)
-		writeBuf := buf[writeAddr-cl.bm.BaseAddr() : writeAddr-cl.bm.BaseAddr()+eraseSize]
+		fmt.Printf("Writing 0x%X bytes @ 0x%08X. Slice [0x%08X:0x%08X]\n", eraseSize, writeToAddr, writeFromAddr, writeFromAddr+eraseSize)
+		writeBuf := buf[writeFromAddr : writeFromAddr+eraseSize]
 		if err := cl.writeWithChecksum(blockAddr, writeBuf); err != nil {
 			return err
 		}
-		writeAddr += eraseSize
+		writeFromAddr += eraseSize
+		writeToAddr += eraseSize
 		stillNeedToWrite -= eraseSize
 	}
 	return nil
