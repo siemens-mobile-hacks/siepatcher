@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/device"
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
@@ -19,6 +20,8 @@ var (
 	flashFile     = flag.String("flash_file", "", "Path to a flash file to read from / store to.")
 	flashBaseAddr = flag.Int64("base_addr", 0, "Base address to read from / write to.")
 	flashLength   = flag.Int64("length", 0, "Length to read / to write.")
+	applyPatch    = flag.Bool("apply_patch", false, "Apply patch specified by -patch_file.")
+	patchFile     = flag.String("patch_file", "", "Patch file to apply.")
 )
 
 func main() {
@@ -109,6 +112,12 @@ func main() {
 		if err := writeFlashFromFile(chaos, *flashBaseAddr, *flashLength, *flashFile); err != nil {
 			fmt.Printf("Cannot write flash to 0x%X len 0x%0X: %v", *flashBaseAddr, *flashLength, err)
 			os.Exit(1)
+		}
+	}
+
+	if *applyPatch {
+		if err := DoApplyPatch(chaos, *patchFile); err != nil {
+			fmt.Printf("Cannot apply patch %q! Error: %v", filepath.Base(*patchFile), err)
 		}
 	}
 	dev.Disconnect()
