@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
@@ -15,12 +16,13 @@ func readFlashToFile(loader pmb887x.ChaosLoader, baseAddr, size int64, filePath 
 	defer ff.Close()
 
 	maxRetries := 3
+	defaultReadSize := 65536 // 64K
 	stillNeedToRead := size
-	readSize := 65536 // 64K
 	errCount := 0
 
 	totalRead := int64(0)
 	for stillNeedToRead > 0 {
+		readSize := int64(math.Min(float64(stillNeedToRead), float64(defaultReadSize)))
 		buf := make([]byte, readSize)
 		retries := maxRetries
 		for ; retries > 0; retries-- {
