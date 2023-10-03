@@ -8,7 +8,7 @@ import (
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
 )
 
-func DoApplyPatch(loader pmb887x.ChaosLoader, patchFile string) error {
+func DoApplyPatch(loader pmb887x.ChaosLoader, patchFile string, isRevert, isDryRun bool) error {
 	// Load a patch.
 	pr, err := patchreader.FromFile(patchFile)
 	if err != nil {
@@ -54,14 +54,25 @@ func DoApplyPatch(loader pmb887x.ChaosLoader, patchFile string) error {
 			dataOff := addr - chunk.BaseAddr
 			//fmt.Printf("\naddr=%08X, blockBaseAddr=%08X, cachedBlockOff=%08X, dataOff=%08X\n", addr, blockBaseAddr, cachedBlockOff, dataOff)
 			gotOldData := &blockCache[blockBaseAddr][cachedBlockOff]
-			wantOldData := chunk.OldData[dataOff]
+			var wantOldData, newData byte
+
+			if !isRevert {
+				wantOldData = chunk.OldData[dataOff]
+				newData = chunk.NewData[dataOff]
+			} else {
+				wantOldData = chunk.NewData[dataOff]
+				newData = chunk.OldData[dataOff]
+			}
 			if *gotOldData != wantOldData {
 				log.Fatalf("Data at addr 0x%X is %X, expected %X", addr, *gotOldData, wantOldData)
 			}
-			*gotOldData = chunk.NewData[dataOff]
+			*gotOldData = newData
 		}
 	}
 	fmt.Println("Patch can be applied!")
+	if isDryRun {
+		return nil
+	}
 
 	// Now all blocks in our blockCache are patched.
 	// Time to send them back to the phone.

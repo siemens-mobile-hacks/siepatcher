@@ -41,11 +41,16 @@ cmd/chaosloader/chaosloader -serial /dev/cu.usbserial-110 -loader /path/to/pmb88
 ```
 
 ### Apply patch
-Note that reverting patches is currently NOT supported ;-)
 
 ```
 cmd/chaosloader/chaosloader -serial /dev/cu.usbserial-110 -loader /path/to/pmb887x-dev/boot/chaos_x85.bin -apply_patch -patch_file ~/Downloads/SL75v52_Work_without_SIM_card.vkp
 ```
+
+### Revert patch
+See a previous example, but specify `-revert_patch` instead of `-apply_patch`
+
+### Test if a patch can be applied cleanly
+See a previous example, specify `-dry_run` in addition to `-apply_patch` or `-revert_patch`.
 
 ### Working with emulator instead of a real phone
 The same commands above will work with emulator if you supply a command-line flash `-emulator`. SiePatcher will wait for the emulator to start and connect to `/tmp/siemens.sock`

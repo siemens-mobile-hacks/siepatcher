@@ -21,6 +21,8 @@ var (
 	flashBaseAddr = flag.Int64("base_addr", 0, "Base address to read from / write to.")
 	flashLength   = flag.Int64("length", 0, "Length to read / to write.")
 	applyPatch    = flag.Bool("apply_patch", false, "Apply patch specified by -patch_file.")
+	revertPatch   = flag.Bool("revert_patch", false, "Revert patch specified by -patch_file.")
+	dryRun        = flag.Bool("dry_run", false, "Only verify if a patch can be applied / reverted, but don't actually write data.")
 	patchFile     = flag.String("patch_file", "", "Patch file to apply.")
 )
 
@@ -115,9 +117,9 @@ func main() {
 		}
 	}
 
-	if *applyPatch {
-		if err := DoApplyPatch(chaos, *patchFile); err != nil {
-			fmt.Printf("Cannot apply patch %q! Error: %v", filepath.Base(*patchFile), err)
+	if *applyPatch || *revertPatch {
+		if err := DoApplyPatch(chaos, *patchFile, *revertPatch, *dryRun); err != nil {
+			fmt.Printf("Cannot apply or revert patch %q! Error: %v", filepath.Base(*patchFile), err)
 		}
 	}
 	dev.Disconnect()
