@@ -1,3 +1,4 @@
 cmd/emulatorpatcher/emulatorpatcher
 cmd/phoneconnect/phoneconnect
 cmd/chaosloader/chaosloader
+cmd/servicemode/servicemode
