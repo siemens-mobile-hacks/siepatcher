@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/device"
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
@@ -24,6 +25,10 @@ var (
 	revertPatch   = flag.Bool("revert_patch", false, "Revert patch specified by -patch_file.")
 	dryRun        = flag.Bool("dry_run", false, "Only verify if a patch can be applied / reverted, but don't actually write data.")
 	patchFile     = flag.String("patch_file", "", "Patch file to apply.")
+)
+
+const (
+	serialSpeed = 115200 // Communication speed.
 )
 
 func main() {
@@ -84,24 +89,26 @@ func main() {
 	chaos := pmb887x.ChaosControllerForDevice(dev.PMB())
 
 	if err = chaos.Activate(); err != nil {
-		fmt.Printf("Cannot activate Chaos boot: %v", err)
+		fmt.Printf("Cannot activate Chaos boot: %v\n", err)
 		os.Exit(1)
 	}
 
 	var info pmb887x.ChaosPhoneInfo
 	if info, err = chaos.ReadInfo(); err != nil {
-		fmt.Printf("Cannot read information from Chaos boot: %v", err)
+		fmt.Printf("Cannot read information from Chaos boot: %v\n", err)
 		os.Exit(1)
 	}
 	fmt.Printf("Phone information:\n%s\n", info)
 
+	beginTime := time.Now()
 	if *readFlash {
 		if *flashBaseAddr == 0 || *flashLength == 0 || *flashFile == "" {
 			fmt.Println("-base_addr, -length and -flash_file must be set!")
 			os.Exit(1)
 		}
+		printScaryTimeStats()
 		if err := readFlashToFile(chaos, *flashBaseAddr, *flashLength, *flashFile); err != nil {
-			fmt.Printf("Cannot read flash from 0x%X len 0x%0X: %v", *flashBaseAddr, *flashLength, err)
+			fmt.Printf("Cannot read flash from 0x%X len 0x%0X: %v\n", *flashBaseAddr, *flashLength, err)
 			os.Exit(1)
 		}
 	}
@@ -111,8 +118,9 @@ func main() {
 			fmt.Println("-base_addr, -length and -flash_file must be set!")
 			os.Exit(1)
 		}
+		printScaryTimeStats()
 		if err := writeFlashFromFile(chaos, *flashBaseAddr, *flashLength, *flashFile); err != nil {
-			fmt.Printf("Cannot write flash to 0x%X len 0x%0X: %v", *flashBaseAddr, *flashLength, err)
+			fmt.Printf("Cannot write flash to 0x%X len 0x%0X: %v\n", *flashBaseAddr, *flashLength, err)
 			os.Exit(1)
 		}
 	}
@@ -122,6 +130,14 @@ func main() {
 			fmt.Printf("Cannot apply or revert patch %q! Error: %v", filepath.Base(*patchFile), err)
 		}
 	}
+	elapsed := time.Since(beginTime)
+	fmt.Printf("Operation took %v.\n", elapsed)
 	dev.Disconnect()
 	fmt.Println()
+}
+
+func printScaryTimeStats() {
+	needTime := *flashLength / (serialSpeed / 8)
+	dur, _ := time.ParseDuration(fmt.Sprintf("%ds", needTime))
+	fmt.Printf("This operation will take %v of your life with the current serial port speed.\n", dur)
 }
