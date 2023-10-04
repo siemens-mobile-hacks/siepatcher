@@ -2,3 +2,5 @@ cmd/emulatorpatcher/emulatorpatcher
 cmd/phoneconnect/phoneconnect
 cmd/chaosloader/chaosloader
 cmd/servicemode/servicemode
+cmd/servicemode/servicemode
+ui/ui.html
