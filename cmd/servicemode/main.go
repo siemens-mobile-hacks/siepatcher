@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	useEmulator = flag.Bool("emulator", false, "Use emulator instead of a physical phone.")
-	serialPort  = flag.String("serial", "", "Serial port path (like /dev/cu.usbserial-110, or COM2).")
+	useEmulator   = flag.Bool("emulator", false, "Use emulator instead of a physical phone.")
+	serialPort    = flag.String("serial", "", "Serial port path (like /dev/cu.usbserial-110, or COM2).")
+	useNormalMode = flag.Bool("normal_mode", false, "Boot into Normal Mode instead of Service Mode.")
 )
 
 func main() {
@@ -40,7 +41,11 @@ func main() {
 		}
 	}
 
-	if err = dev.ConnectAndBoot(pmb887x.ServiceModeBoot); err != nil {
+	loader := pmb887x.ServiceModeBoot
+	if *useNormalMode {
+		loader = pmb887x.NormalModeBoot
+	}
+	if err = dev.ConnectAndBoot(loader); err != nil {
 		fmt.Printf("Cannot boot device into service mode: %v", err)
 		os.Exit(1)
 	}
