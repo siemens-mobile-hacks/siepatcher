@@ -142,6 +142,7 @@ func (cl *ChaosLoader) Ping() (bool, error) {
 	if reply[0] == 'R' {
 		return true, nil
 	}
+	fmt.Printf("Unexpected reply to PING: %02X\n", reply[0])
 	return false, nil
 }
 
@@ -321,6 +322,18 @@ func (cl *ChaosLoader) writeWithChecksum(baseAddr int64, buf []byte) error {
 		return fmt.Errorf("unexpected result of writing block: %v", reply)
 	}
 	fmt.Println(" - Block written!")
+	extraReplyBytes := make([]byte, 4)
+	if n, err = io.ReadAtLeast(cl.pmb.iostream, extraReplyBytes, 4); err != nil {
+		return fmt.Errorf("cannot read extra reply bytes: n=%d, %v", n, err)
+	}
+	fmt.Printf("Read noch %d extra bytes: %X\n", n, extraReplyBytes[:n])
+	ok, err := cl.Ping()
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("didn't receive a valid reply to PING after completing command")
+	}
 	return nil
 }
 
