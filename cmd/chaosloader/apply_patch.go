@@ -3,14 +3,28 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 
+	"github.com/siemens-mobile-hacks/siepatcher/pkg/patcheskibabcom"
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/patchreader"
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
 )
 
 func DoApplyPatch(loader pmb887x.ChaosLoader, patchFile string, isRevert, isDryRun bool) error {
+	var pr *patchreader.PatchReader
 	// Load a patch.
-	pr, err := patchreader.FromFile(patchFile)
+	patchID, err := strconv.ParseInt(patchFile, 10, 64)
+	if err != nil {
+		pr, err = patchreader.FromFile(patchFile)
+	} else {
+		patchText, err := patcheskibabcom.PatchByID(int(patchID))
+		if err != nil {
+			return err
+		}
+		if pr, err = patchreader.FromString(patchText); err != nil {
+			return err
+		}
+	}
 	if err != nil {
 		log.Fatalf("Cannot load patch: %v", err)
 	}
