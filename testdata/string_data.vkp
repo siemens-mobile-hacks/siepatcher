@@ -1,0 +1,12 @@
+; This is a snippet of a real patch https://patches.kibab.com/patches/details.php5?id=5445
++0FC0000
+#pragma enable old_equal_ff
+;Data
+0E00: "EELI","EEFU","FFS_","FFS",00                ; Skip 128K
+0E10: 0x0000BBBB,0xB1C2D3E4,0xA0000000,0xA2000000  ; LGP (skip 640K), Magic, From, To 
+0E20: "0:\\Misc\\Patches\\ptc\\configs.txt",00 
+0E40: "0:\\Misc\\Patches\\ptc\\%08x.ptc",00 
+0E60: "0:\\Misc\\Patches\\Dis\\*.dis",00
+0E80: "0:\\Misc\\Patches\\Dis\\*.cfg",00
+#pragma disable old_equal_ff
++0

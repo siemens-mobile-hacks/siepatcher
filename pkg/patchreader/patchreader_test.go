@@ -33,7 +33,7 @@ func TestLoadPlainPatch(t *testing.T) {
 		},
 		{
 			fileName:  "addr_offset.vkp",
-			NumChunks: 3,
+			NumChunks: 4,
 			wantError: false,
 		},
 		{
@@ -58,6 +58,11 @@ func TestLoadPlainPatch(t *testing.T) {
 		},
 		{
 			fileName:  "more_old_than_new.vkp",
+			NumChunks: 1,
+			wantError: false,
+		},
+		{
+			fileName:  "string_data.vkp",
 			NumChunks: 1,
 			wantError: false,
 		},

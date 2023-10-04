@@ -66,9 +66,20 @@ func (pr *PatchReader) Chunks() []Chunk {
 	return pr.chunks
 }
 
-////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////
 // VKP file format: http://www.vi-soft.com.ua/siemens/vkp_file_format.txt //
-////////////////////////////////////////////////////////////////////////////
+// //////////////////////////////////////////////////////////////////////////
+
+func parseStringData(dataBlock string) ([]byte, error) {
+	unquoted, err := strconv.Unquote(dataBlock)
+	if err != nil {
+		fmt.Println("Error unquoting the string:", err)
+		return nil, err
+	}
+	outBuf := make([]byte, 0)
+	outBuf = append(outBuf, []byte(unquoted)...)
+	return outBuf, nil
+}
 
 func parseDecimalNum(dataBlock string) ([]byte, error) {
 	outBuf := make([]byte, 0)
@@ -129,6 +140,14 @@ func parseDataField(df string) ([]byte, error) {
 		if strings.HasPrefix(dataBlock, "0i") {
 			dataBlock = strings.TrimPrefix(dataBlock, "0i") // 0i46 --> 46
 			byteData, err := parseDecimalNum(dataBlock)
+			if err != nil {
+				return nil, err
+			}
+			outBuf = append(outBuf, byteData...)
+			continue
+		}
+		if strings.HasPrefix(dataBlock, `"`) {
+			byteData, err := parseStringData(dataBlock)
 			if err != nil {
 				return nil, err
 			}
