@@ -37,12 +37,16 @@ type PatchReader struct {
 }
 
 func FromFile(path string) (*PatchReader, error) {
-	p := &PatchReader{}
 	txt, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	p.txt = string(txt)
+	return FromString(string(txt))
+}
+
+func FromString(txt string) (*PatchReader, error) {
+	p := &PatchReader{}
+	p.txt = txt
 
 	if err := p.parse(); err != nil {
 		return nil, err
