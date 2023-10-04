@@ -256,6 +256,7 @@ func (pr *PatchReader) parse() error {
 		if err != nil {
 			return fmt.Errorf("line %d: cannot convert address %q to int64: %v", lineNum, addrHex, err)
 		}
+		addr += currentSettings.addrOffset
 
 		dataInfo := strings.TrimSpace(patchLine[addrPos+1:])
 		dataFields := strings.Split(dataInfo, " ")
