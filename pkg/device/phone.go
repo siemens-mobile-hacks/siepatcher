@@ -3,7 +3,7 @@ package device
 import (
 	"fmt"
 
-	"github.com/FObersteiner/goserial"
+	"github.com/kibab/goserial"
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
 )
 

@@ -182,10 +182,10 @@ func (cl *ChaosLoader) SetSpeed(speed int, speedSetter SpeedSetterFunc) error {
 	}
 	shortDelay()
 	if _, err := cl.pmb.iostream.Write([]byte{'A'}); err != nil {
-		return err
+		return fmt.Errorf("cannot request connection verification after changing our speed: %w", err)
 	}
 	if _, err := cl.pmb.iostream.Read(reply); err != nil {
-		return err
+		return fmt.Errorf("cannot receive confirmation after changing our speed: %w", err)
 	}
 	if reply[0] != 0x48 {
 		return fmt.Errorf("unexpected reply 0x%02X after changing comm speed", reply[0])
