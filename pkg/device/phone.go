@@ -45,7 +45,7 @@ func (p *Phone) Disconnect() error {
 }
 
 func (p *Phone) SetSpeed(speed int) error {
-	return nil
+	return p.serialPort.SetSpeed(speed)
 }
 
 func (p *Phone) PMB() pmb887x.Device {

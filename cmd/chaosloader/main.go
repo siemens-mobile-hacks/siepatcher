@@ -14,6 +14,7 @@ import (
 var (
 	useEmulator   = flag.Bool("emulator", false, "Use emulator instead of a physical phone.")
 	serialPort    = flag.String("serial", "", "Serial port path (like /dev/cu.usbserial-110, or COM2).")
+	serialSpeed   = flag.Int("speed", 115200, "Serial port speed to use.")
 	chaosLoader   = flag.String("loader", "", "Path to Chaos bootloader (.bin file).")
 	chaosInfoFile = flag.String("chaos_info_file", "", "Path to a dumped Chaos info block. Parse and exit.")
 	readFlash     = flag.Bool("read_flash", false, "Read flash to file.")
@@ -25,10 +26,6 @@ var (
 	revertPatch   = flag.Bool("revert_patch", false, "Revert patch specified by -patch_file.")
 	dryRun        = flag.Bool("dry_run", false, "Only verify if a patch can be applied / reverted, but don't actually write data.")
 	patchFile     = flag.String("patch_file", "", "Patch file to apply.")
-)
-
-const (
-	serialSpeed = 115200 // Communication speed.
 )
 
 func main() {
@@ -93,6 +90,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("Attempting to change COM speed to %d\n", *serialSpeed)
+	ourSpeedSetter := func() error { return dev.SetSpeed(*serialSpeed) }
+	if err := chaos.SetSpeed(*serialSpeed, ourSpeedSetter); err != nil {
+		fmt.Printf("Cannot set comms speed %d with Chaos boot: %v\n", serialSpeed, err)
+		os.Exit(1)
+	}
+
 	var info pmb887x.ChaosPhoneInfo
 	if info, err = chaos.ReadInfo(); err != nil {
 		fmt.Printf("Cannot read information from Chaos boot: %v\n", err)
@@ -137,7 +141,7 @@ func main() {
 }
 
 func printScaryTimeStats() {
-	needTime := *flashLength / (serialSpeed / 8)
+	needTime := *flashLength / int64(*serialSpeed/8)
 	dur, _ := time.ParseDuration(fmt.Sprintf("%ds", needTime))
 	fmt.Printf("This operation will take %v of your life with the current serial port speed.\n", dur)
 }

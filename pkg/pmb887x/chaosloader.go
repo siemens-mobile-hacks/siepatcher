@@ -146,6 +146,53 @@ func (cl *ChaosLoader) Ping() (bool, error) {
 	return false, nil
 }
 
+type SpeedSetterFunc func() error
+
+func (cl *ChaosLoader) SetSpeed(speed int, speedSetter SpeedSetterFunc) error {
+	chaosSpeeds := map[int]int{
+		115200:  0x01,
+		230400:  0x02,
+		460800:  0x03,
+		614400:  0x04,
+		921600:  0x05,
+		1228800: 0x06,
+		1600000: 0x07,
+		1500000: 0x08,
+		1625000: 0x07,
+		3250000: 0x09,
+	}
+	chaosReqSpeed, ok := chaosSpeeds[speed]
+	if !ok {
+		return fmt.Errorf("bootloader doesn't support speed %d", speed)
+	}
+	cmd := []byte{'H', byte(chaosReqSpeed)}
+	shortDelay()
+	if _, err := cl.pmb.iostream.Write(cmd); err != nil {
+		return err
+	}
+	reply := []byte{0x00}
+	if _, err := cl.pmb.iostream.Read(reply); err != nil {
+		return err
+	}
+	if reply[0] != 0x68 {
+		return fmt.Errorf("unexpected answer after asking to set speed: 0x%02X", reply[0])
+	}
+	if err := speedSetter(); err != nil {
+		return fmt.Errorf("cannot set speed on our side of connection: %v", err)
+	}
+	shortDelay()
+	if _, err := cl.pmb.iostream.Write([]byte{'A'}); err != nil {
+		return err
+	}
+	if _, err := cl.pmb.iostream.Read(reply); err != nil {
+		return err
+	}
+	if reply[0] != 0x48 {
+		return fmt.Errorf("unexpected reply 0x%02X after changing comm speed", reply[0])
+	}
+	return nil
+}
+
 // ReadInfo sends "Get info" command to the bootloader and dumps the result.
 func (cl *ChaosLoader) ReadInfo() (ChaosPhoneInfo, error) {
 	shortDelay()

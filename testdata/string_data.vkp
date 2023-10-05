@@ -10,3 +10,12 @@
 0E80: "0:\\Misc\\Patches\\Dis\\*.cfg",00
 #pragma disable old_equal_ff
 +0
+
+; This is again snippet from a real patch: https://patches.kibab.com/patches/details.php5?id=5764
+#pragma enable old_equal_ff
+0FC73F0: E4D3C2B1,0x0000AB15,0000000000000000,"blabla\
+{p=ScreenShooter ver=2 cp=avkiev id=AB15}\
+{1 h Ringtone v=01}\
+{4 s Path ml=50 v=`0:\\Misc\\Shots\\%02u%02u%02u_%02u%02u%02u.bmp`}\
+",00
+#pragma disable old_equal_ff
