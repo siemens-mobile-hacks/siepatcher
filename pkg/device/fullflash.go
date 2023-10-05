@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
 )
 
 type writeableBackingStore interface {
@@ -20,14 +22,22 @@ type FullflashFile struct {
 }
 
 // NewDeviceFromFullflash creates an instance of FullflashFile.
-func NewDeviceFromFullflash(filePath string) FullflashFile {
-	return FullflashFile{
+func NewDeviceFromFullflash(filePath string) *FullflashFile {
+	return &FullflashFile{
 		fileName: filePath,
 	}
 }
 
 func (ff *FullflashFile) Name() string {
 	return fmt.Sprintf("Flash dump file %q", ff.fileName)
+}
+
+func (ff *FullflashFile) ConnectAndBoot(_ []byte) error {
+	return nil
+}
+
+func (ff *FullflashFile) PMB() pmb887x.Device {
+	return pmb887x.Device{}
 }
 
 func (ff *FullflashFile) Connect() error {

@@ -103,8 +103,8 @@ type ChaosLoader struct {
 	bm  *blockman.Blockman
 }
 
-func ChaosControllerForDevice(dev Device) ChaosLoader {
-	return ChaosLoader{pmb: dev}
+func ChaosControllerForDevice(dev Device) *ChaosLoader {
+	return &ChaosLoader{pmb: dev}
 }
 
 func (cl *ChaosLoader) Activate() error {

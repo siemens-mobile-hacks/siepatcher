@@ -31,6 +31,7 @@ var (
 func main() {
 
 	var dev device.Device
+	var chaos pmb887x.ChaosLoaderInterface
 	var err error
 
 	flag.Parse()
@@ -83,7 +84,7 @@ func main() {
 
 	// Now create a Chaos controller so  that all other operations interact with it
 	// instead of a plain firmware.
-	chaos := pmb887x.ChaosControllerForDevice(dev.PMB())
+	chaos = pmb887x.ChaosControllerForDevice(dev.PMB())
 
 	if err = chaos.Activate(); err != nil {
 		fmt.Printf("Cannot activate Chaos boot: %v\n", err)

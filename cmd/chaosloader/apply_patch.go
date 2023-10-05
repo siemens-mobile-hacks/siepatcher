@@ -10,7 +10,7 @@ import (
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
 )
 
-func DoApplyPatch(loader pmb887x.ChaosLoader, patchFile string, isRevert, isDryRun bool) error {
+func DoApplyPatch(loader pmb887x.ChaosLoaderInterface, patchFile string, isRevert, isDryRun bool) error {
 	var pr *patchreader.PatchReader
 	// Load a patch.
 	patchID, err := strconv.ParseInt(patchFile, 10, 64)

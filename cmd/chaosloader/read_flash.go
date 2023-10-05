@@ -8,7 +8,7 @@ import (
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
 )
 
-func readFlashToFile(loader pmb887x.ChaosLoader, baseAddr, size int64, filePath string) error {
+func readFlashToFile(loader pmb887x.ChaosLoaderInterface, baseAddr, size int64, filePath string) error {
 	ff, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("cannot open file to store flashdump: %v", err)

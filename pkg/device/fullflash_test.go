@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func newDeviceFromBlankFile(size int64) (FullflashFile, func()) {
+func newDeviceFromBlankFile(size int64) (*FullflashFile, func()) {
 	ff, err := os.CreateTemp("", "fullflash_*")
 	if err != nil {
 		panic("cannot create temp file?!")
