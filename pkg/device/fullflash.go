@@ -32,15 +32,11 @@ func (ff *FullflashFile) Name() string {
 	return fmt.Sprintf("Flash dump file %q", ff.fileName)
 }
 
-func (ff *FullflashFile) ConnectAndBoot(_ []byte) error {
-	return ff.Connect()
-}
-
 func (ff *FullflashFile) PMB() pmb887x.Device {
 	return pmb887x.Device{}
 }
 
-func (ff *FullflashFile) Connect() error {
+func (ff *FullflashFile) ConnectAndBoot(_ []byte) error {
 	if ff.backingStore != nil {
 		return fmt.Errorf("file %q is already open", ff.fileName)
 	}

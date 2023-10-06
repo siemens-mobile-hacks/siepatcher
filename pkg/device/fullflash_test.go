@@ -31,7 +31,7 @@ func TestFullflashFile(t *testing.T) {
 	testFF, cleanup := newDeviceFromBlankFile(16)
 	defer cleanup()
 
-	if err := testFF.Connect(); err != nil {
+	if err := testFF.ConnectAndBoot(nil); err != nil {
 		t.Fatalf("Error while initializing a test fullflash: %v", err)
 	}
 
