@@ -10,7 +10,7 @@ import (
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
 )
 
-func DoApplyPatch(loader pmb887x.ChaosLoaderInterface, patchFile string, isRevert, isDryRun bool) error {
+func DoApplyPatch(loader pmb887x.ChaosLoaderInterface, patchFile string, isRevert, isDryRun, isForce bool) error {
 	var pr *patchreader.PatchReader
 	// Load a patch.
 	patchID, err := strconv.ParseInt(patchFile, 10, 64)
@@ -78,7 +78,11 @@ func DoApplyPatch(loader pmb887x.ChaosLoaderInterface, patchFile string, isRever
 				newData = chunk.OldData[dataOff]
 			}
 			if *gotOldData != wantOldData {
-				log.Fatalf("Data at addr 0x%X is %X, expected %X", addr, *gotOldData, wantOldData)
+				if isForce {
+					log.Printf("Data at addr 0x%X is %X, expected %X. Proceeding anyway...\n", addr, *gotOldData, wantOldData)
+				} else {
+					return fmt.Errorf("data at addr 0x%X is %X, expected %X", addr, *gotOldData, wantOldData)
+				}
 			}
 			*gotOldData = newData
 		}

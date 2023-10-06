@@ -137,6 +137,7 @@ func parseDataField(df string) ([]byte, error) {
 
 	dataBlocks := strings.Split(df, ",")
 	for _, dataBlock := range dataBlocks {
+		dataBlock := strings.TrimSpace(dataBlock)
 		if strings.HasPrefix(dataBlock, "0i") {
 			dataBlock = strings.TrimPrefix(dataBlock, "0i") // 0i46 --> 46
 			byteData, err := parseDecimalNum(dataBlock)
@@ -199,6 +200,8 @@ func parsePragma(currentSettings *chunkSettings, pragmaStr string) error {
 	switch pragma[1] {
 	case "old_equal_ff":
 		currentSettings.isOldEqualFF = pragmaEnable
+	case "warn_if_old_exist_on_undo":
+		fmt.Printf("pragma warn_if_old_exist_on_undo -- ignoring\n")
 	default:
 		return fmt.Errorf("unrecognized pragma %q", pragma[1])
 	}
@@ -229,6 +232,16 @@ func removeMultilineComments(text string) string {
 	r := regexp.MustCompile(`(?s)/\*.*?\*/`)
 	return r.ReplaceAllString(text, "")
 }
+
+// var (
+// 	reManySpaces = regexp.MustCompile(`\s+`)
+// )
+
+// func normalizeSpaces(input string) string {
+// 	// Replace multiple consecutive spaces with a single space using regex.
+// 	normalized := reManySpaces.ReplaceAllString(input, " ")
+// 	return normalized
+// }
 
 func (pr *PatchReader) parse() error {
 
@@ -282,6 +295,7 @@ func (pr *PatchReader) parse() error {
 		addr += currentSettings.addrOffset
 
 		dataInfo := strings.TrimSpace(patchLine[addrPos+1:])
+		//dataInfo = normalizeSpaces(dataInfo) // This may mangle data in quoted strings!!!
 		dataFields := strings.Split(dataInfo, " ")
 
 		var oldData []byte

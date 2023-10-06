@@ -33,7 +33,7 @@ func (ff *FullflashFile) Name() string {
 }
 
 func (ff *FullflashFile) ConnectAndBoot(_ []byte) error {
-	return nil
+	return ff.Connect()
 }
 
 func (ff *FullflashFile) PMB() pmb887x.Device {

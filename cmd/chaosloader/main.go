@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -17,6 +18,7 @@ var (
 	serialSpeed   = flag.Int("speed", 115200, "Serial port speed to use.")
 	chaosLoader   = flag.String("loader", "", "Path to Chaos bootloader (.bin file).")
 	chaosInfoFile = flag.String("chaos_info_file", "", "Path to a dumped Chaos info block. Parse and exit.")
+	useRestoreOld = flag.Bool("restore_old_data_from_ff", false, "If true, restore blocks changed by patch -patch_file from the FF backup -flash_file.")
 	readFlash     = flag.Bool("read_flash", false, "Read flash to file.")
 	writeFlash    = flag.Bool("write_flash", false, "Write flash from file.")
 	flashFile     = flag.String("flash_file", "", "Path to a flash file to read from / store to.")
@@ -25,6 +27,7 @@ var (
 	applyPatch    = flag.Bool("apply_patch", false, "Apply patch specified by -patch_file.")
 	revertPatch   = flag.Bool("revert_patch", false, "Revert patch specified by -patch_file.")
 	dryRun        = flag.Bool("dry_run", false, "Only verify if a patch can be applied / reverted, but don't actually write data.")
+	forceAction   = flag.Bool("force", false, "Apply /revert patch even if the old data doesn't match.")
 	patchFile     = flag.String("patch_file", "", "Patch file to apply.")
 )
 
@@ -106,6 +109,16 @@ func main() {
 	fmt.Printf("Phone information:\n%s\n", info)
 
 	beginTime := time.Now()
+
+	if *useRestoreOld {
+		if *flashFile == "" || *patchFile == "" {
+			log.Fatalf("-flash_file and -patch_file must not be empty!")
+		}
+		if err := RestoreOldDataFromFullflash(chaos, *patchFile, *flashFile); err != nil {
+			log.Fatalf("Cannot restore data: %v", err)
+		}
+	}
+
 	if *readFlash {
 		if *flashBaseAddr == 0 || *flashLength == 0 || *flashFile == "" {
 			fmt.Println("-base_addr, -length and -flash_file must be set!")
@@ -131,7 +144,7 @@ func main() {
 	}
 
 	if *applyPatch || *revertPatch {
-		if err := DoApplyPatch(chaos, *patchFile, *revertPatch, *dryRun); err != nil {
+		if err := DoApplyPatch(chaos, *patchFile, *revertPatch, *dryRun, *forceAction); err != nil {
 			fmt.Printf("Cannot apply or revert patch %q! Error: %v", filepath.Base(*patchFile), err)
 		}
 	}
