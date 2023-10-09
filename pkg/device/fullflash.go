@@ -124,3 +124,6 @@ func (ff *FullflashFile) WriteRegion(baseAddr int64, block []byte) error {
 // //////////////////////////////////
 // FullflashFile specific methods //
 // //////////////////////////////////
+func (ff *FullflashFile) Size() int64 {
+	return ff.fileSize
+}

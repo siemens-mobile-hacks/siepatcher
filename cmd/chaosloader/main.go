@@ -14,6 +14,8 @@ import (
 
 var (
 	useEmulator   = flag.Bool("emulator", false, "Use emulator instead of a physical phone.")
+	useFullFlash  = flag.Bool("use_fullflash_not_phone", false, "Use a file with fullflash instead of a real phone.")
+	usedFFFile    = flag.String("use_fullflash_file_path", "", "Use this file instead of a real phone.")
 	serialPort    = flag.String("serial", "", "Serial port path (like /dev/cu.usbserial-110, or COM2).")
 	serialSpeed   = flag.Int("speed", 115200, "Serial port speed to use.")
 	chaosLoader   = flag.String("loader", "", "Path to Chaos bootloader (.bin file).")
@@ -55,7 +57,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	if *useEmulator {
+	if *useFullFlash {
+		fullflash := device.NewDeviceFromFullflash(*usedFFFile)
+		chaos = device.NewLoaderForFullflashFile(fullflash)
+		dev = fullflash
+	} else if *useEmulator {
 
 		dev, err = device.NewEmulatorBackend()
 		if err != nil {
@@ -72,23 +78,22 @@ func main() {
 			fmt.Printf("Cannot instantiate new phone connection: %v\n", err)
 			os.Exit(1)
 		}
+
+		loader, err := os.ReadFile(*chaosLoader)
+		if err != nil {
+			fmt.Printf("cannot read Chaos Loader code: %v", err)
+			os.Exit(1)
+		}
+
+		if err = dev.ConnectAndBoot(loader); err != nil {
+			fmt.Printf("Cannot boot device with Chaos boot: %v", err)
+			os.Exit(1)
+		}
+
+		// Now create a Chaos controller so  that all other operations interact with it
+		// instead of a plain firmware.
+		chaos = pmb887x.ChaosControllerForDevice(dev.PMB())
 	}
-
-	loader, err := os.ReadFile(*chaosLoader)
-	if err != nil {
-		fmt.Printf("cannot read Chaos Loader code: %v", err)
-		os.Exit(1)
-	}
-
-	if err = dev.ConnectAndBoot(loader); err != nil {
-		fmt.Printf("Cannot boot device with Chaos boot: %v", err)
-		os.Exit(1)
-	}
-
-	// Now create a Chaos controller so  that all other operations interact with it
-	// instead of a plain firmware.
-	chaos = pmb887x.ChaosControllerForDevice(dev.PMB())
-
 	if err = chaos.Activate(); err != nil {
 		fmt.Printf("Cannot activate Chaos boot: %v\n", err)
 		os.Exit(1)

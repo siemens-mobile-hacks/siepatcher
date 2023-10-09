@@ -203,7 +203,7 @@ func (cl *ChaosLoader) ReadInfo() (ChaosPhoneInfo, error) {
 	reply := make([]byte, 128)
 	var n int
 	var err error
-	if n, err = cl.pmb.iostream.Read(reply); err != nil {
+	if n, err = io.ReadAtLeast(cl.pmb.iostream, reply, 128); err != nil {
 		return ChaosPhoneInfo{}, err
 	}
 	if n < 128 {

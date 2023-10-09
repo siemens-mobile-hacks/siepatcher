@@ -4,6 +4,7 @@ Patcher and flasher for *nix systems, like V_Klay for Windows.
  * R65 (SGOLD)
  * X75 (SGOLD2)
  * Azq2's emulator: https://github.com/Azq2/pmb887x-emu
+ * Fullflash dumps
 
 ## Features
  * Booting phone in Service Mode
@@ -53,4 +54,8 @@ See a previous example, but specify `-revert_patch` instead of `-apply_patch`
 See a previous example, specify `-dry_run` in addition to `-apply_patch` or `-revert_patch`.
 
 ### Working with emulator instead of a real phone
-The same commands above will work with emulator if you supply a command-line flash `-emulator`. SiePatcher will wait for the emulator to start and connect to `/tmp/siemens.sock`
+The same commands above will work with emulator if you supply a command-line flag `-emulator`. SiePatcher will wait for the emulator to start and connect to `/tmp/siemens.sock`
+
+### Working with the fullflash file instead of a real phone
+The same commands above will work with the fullflash file if you supply a command-line flag `-use_fullflash_not_phone`.
+You must specify a path to the fullflash dump using `-use_fullflash_file_path /path/to/file.bin`.
