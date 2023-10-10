@@ -155,12 +155,26 @@ func parseDataField(df string) ([]byte, error) {
 			outBuf = append(outBuf, byteData...)
 			continue
 		}
-		dataBlock = strings.TrimPrefix(dataBlock, "0x") // 0xA04B1C70 --> A04B1C70
-		byteData, err := hex.DecodeString(dataBlock)
-		if err != nil {
-			return nil, err
+		if strings.HasPrefix(dataBlock, "0x") {
+			//dataBlock = strings.TrimPrefix(dataBlock, "0x") // 0xA04B1C70 --> A04B1C70
+			intValue, err := strconv.ParseInt(dataBlock, 0, 64)
+			if err != nil {
+				return nil, fmt.Errorf("cannot convert %q to int: %w", dataBlock, err)
+			}
+			// Since we work with LE, we need to put our 0xA04B1C70 as 70,1C,B1,A0.
+			byteData := make([]byte, 4)
+			byteData[0] = byte((intValue) & 0xFF)
+			byteData[1] = byte((intValue >> 8) & 0xFF)
+			byteData[2] = byte((intValue >> 16) & 0xFF)
+			byteData[3] = byte((intValue >> 24) & 0xFF)
+			outBuf = append(outBuf, byteData...)
+		} else {
+			byteData, err := hex.DecodeString(dataBlock)
+			if err != nil {
+				return nil, err
+			}
+			outBuf = append(outBuf, byteData...)
 		}
-		outBuf = append(outBuf, byteData...)
 	}
 	return outBuf, nil
 }
@@ -318,7 +332,7 @@ func (pr *PatchReader) parse() error {
 		}
 		newData, err := parseDataField(newDataStr)
 		if err != nil {
-			return fmt.Errorf("line %d: cannot parse new data: %v", lineNum, err)
+			return fmt.Errorf("line %d: cannot parse new data (%q): %v", lineNum, newDataStr, err)
 		}
 
 		if currentSettings.isOldEqualFF {
