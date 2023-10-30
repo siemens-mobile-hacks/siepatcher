@@ -2,6 +2,7 @@ package device
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/kibab/goserial"
 	"github.com/siemens-mobile-hacks/siepatcher/pkg/pmb887x"
@@ -15,7 +16,7 @@ type Phone struct {
 }
 
 func NewPhone(serialPortNameOrPath string) (*Phone, error) {
-	serialPortConfig := &goserial.Config{Name: serialPortNameOrPath, Baud: 115200}
+	serialPortConfig := &goserial.Config{Name: serialPortNameOrPath, Baud: 115200, ReadTimeout: time.Second * 5}
 	serialPort, err := goserial.OpenPort(serialPortConfig)
 	if err != nil {
 		return nil, fmt.Errorf("cannot open serial port %q: %v", serialPortNameOrPath, err)
