@@ -108,8 +108,16 @@ func main() {
 	}
 
 	if *readFlash {
-		if *flashBaseAddr == 0 || *flashLength == 0 || *flashFile == "" {
-			fmt.Println("-base_addr, -length and -flash_file must be set!")
+		if *flashBaseAddr == 0 {
+			*flashBaseAddr = info.BlockMap.BaseAddr()
+			fmt.Printf("-flash_addr not given, assuming 0x%08X\n", *flashBaseAddr)
+		}
+		if *flashLength == 0 {
+			*flashLength = info.BlockMap.TotalSize()
+			fmt.Printf("-length not given, assuming 0x%08X\n", *flashLength)
+		}
+		if *flashFile == "" {
+			fmt.Println("-flash_file must be set!")
 			os.Exit(1)
 		}
 		printScaryTimeStats()
