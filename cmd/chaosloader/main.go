@@ -18,7 +18,7 @@ var (
 	usedFFFile    = flag.String("use_fullflash_file_path", "", "Use this file instead of a real phone.")
 	serialPort    = flag.String("serial", "", "Serial port path (like /dev/cu.usbserial-110, or COM2).")
 	serialSpeed   = flag.Int("speed", 115200, "Serial port speed to use.")
-	chaosLoader   = flag.String("loader", "", "Path to Chaos bootloader (.bin file).")
+	chaosLoader   = flag.String("loader", "", "Path to Chaos bootloader (.bin file). If not specified, an embedded loader is used.")
 	useRestoreOld = flag.Bool("restore_old_data_from_ff", false, "If true, restore blocks changed by patch -patch_file from the FF backup -flash_file.")
 	readFlash     = flag.Bool("read_flash", false, "Read flash to file.")
 	writeFlash    = flag.Bool("write_flash", false, "Write flash from file.")
@@ -62,10 +62,15 @@ func main() {
 			os.Exit(1)
 		}
 
-		loader, err := os.ReadFile(*chaosLoader)
-		if err != nil {
-			fmt.Printf("cannot read Chaos Loader code: %v", err)
-			os.Exit(1)
+		var loader []byte
+		if *chaosLoader != "" {
+			loader, err = os.ReadFile(*chaosLoader)
+			if err != nil {
+				fmt.Printf("cannot read Chaos Loader code: %v", err)
+				os.Exit(1)
+			}
+		} else {
+			loader = pmb887x.ChaosLoaderBin
 		}
 
 		if err = dev.ConnectAndBoot(loader); err != nil {
